@@ -16,27 +16,35 @@ A 10/10 Claude Code setup that works for both new and existing projects.
 
 ## Quick Start
 
-### One-time install
+### 1. Install (one-time)
 
 ```bash
-git clone https://github.com/yourusername/claude-project-init.git ~/.claude-templates/project-init
-echo 'alias project-init="~/.claude-templates/project-init/bootstrap.sh"' >> ~/.zshrc
-source ~/.zshrc
+git clone https://github.com/ahsanahmed321/claude-project-init ~/.claude-templates/project-init
 ```
 
-### New project
+Add the alias for your shell:
 
 ```bash
+# zsh
+echo 'alias claude-init="~/.claude-templates/project-init/bootstrap.sh"' >> ~/.zshrc && source ~/.zshrc
+
+# bash
+echo 'alias claude-init="~/.claude-templates/project-init/bootstrap.sh"' >> ~/.bashrc && source ~/.bashrc
+```
+
+### 2. Run on any project
+
+**New project:**
+```bash
 mkdir my-new-project && cd my-new-project
-project-init .
+claude-init .
 # Open in Claude Code → run /project-setup
 ```
 
-### Existing project
-
+**Existing project:**
 ```bash
 cd ~/Projects/my-existing-project
-project-init .
+claude-init .
 # Choose [m] to merge (adds missing files, keeps your existing ones)
 # Open in Claude Code → run /project-setup
 # Claude will analyze your codebase and generate CLAUDE.md from what it finds
