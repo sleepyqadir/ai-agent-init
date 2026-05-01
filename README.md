@@ -137,6 +137,20 @@ The `/project-setup` skill auto-selects a profile based on your stack:
 - **AI Project** — model config, prompt versioning, eval framework, cost tracking
 - **Generic** — universal conventions for any stack
 
+## Updating an Existing Project
+
+When you want to pull the latest agents, skills, rules, hooks, and commands into a project:
+
+```bash
+cd ~/Projects/my-project
+claude-init --update .
+```
+
+This will:
+1. Pull the latest template from GitHub
+2. Overwrite `agents/`, `skills/`, `rules/`, `hooks/`, and `commands/` in your project's `.claude/`
+3. Leave `CLAUDE.md` and `settings.json` untouched
+
 ## Re-running Setup
 
 Run `/project-setup` again to:

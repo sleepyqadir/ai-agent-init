@@ -3,6 +3,45 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCAFFOLD="$SCRIPT_DIR/scaffold"
+
+# Handle --update flag
+if [ "${1:-}" = "--update" ]; then
+  TARGET="${2:-.}"
+  if [ -d "$TARGET" ]; then
+    TARGET="$(cd "$TARGET" && pwd)"
+  fi
+
+  echo "=== claude-init update ==="
+  echo ""
+
+  # Step 1: Pull latest template
+  echo "Pulling latest template..."
+  git -C "$SCRIPT_DIR" pull
+  echo ""
+
+  # Step 2: Overwrite safe files (skip CLAUDE.md and settings.json)
+  echo "Syncing to: $TARGET"
+  SAFE_DIRS=("agents" "skills" "rules" "hooks" "commands")
+  for dir in "${SAFE_DIRS[@]}"; do
+    src="$SCAFFOLD/.claude/$dir"
+    dest="$TARGET/.claude/$dir"
+    if [ -d "$src" ]; then
+      rm -rf "$dest"
+      cp -r "$src" "$dest"
+      echo "  updated: .claude/$dir"
+    fi
+  done
+
+  # Make hooks executable
+  find "$TARGET/.claude/hooks" -name "*.py" -exec chmod +x {} \; 2>/dev/null || true
+  find "$TARGET/.claude/hooks" -name "*.sh" -exec chmod +x {} \; 2>/dev/null || true
+
+  echo ""
+  echo "Done. Your project is up to date."
+  echo "Note: CLAUDE.md and settings.json were not touched."
+  exit 0
+fi
+
 TARGET="${1:-.}"
 
 if [ -d "$TARGET" ]; then
@@ -12,7 +51,7 @@ else
   TARGET="$(cd "$TARGET" && pwd)"
 fi
 
-echo "=== claude-project-init ==="
+echo "=== claude-init ==="
 echo "Target: $TARGET"
 echo ""
 
