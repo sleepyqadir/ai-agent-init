@@ -95,6 +95,8 @@ claude-init .
 | `/debug` | Systematic root-cause debugging |
 | `/ui-design` | Distinctive UI — not generic AI output |
 | `/e2e-testing` | Playwright E2E tests, recon-first |
+| `/e2e-loop` | Automated exploratory E2E testing — maps app, tests every page |
+| `/10-10-frontend` | Iterative UI polish via screenshots until 10/10 |
 | `/ci-setup` | GitHub Actions workflow generation |
 | `/new-skill` | Extend the system with custom skills |
 | `/new-agent` | Add specialized agents |
@@ -157,7 +159,7 @@ Run `/project-setup` again to:
 - New project: re-interview and regenerate everything
 - Existing project: re-analyze the codebase and update CLAUDE.md
 
-Existing `.claude/` files are backed up before overwrite.
+When overwriting, existing `.claude/` files are replaced. Use merge `[m]` to keep your customizations.
 
 ## Extending
 
