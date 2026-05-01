@@ -1,4 +1,4 @@
-# claude-project-init
+# claude-init
 
 A 10/10 Claude Code setup that works for both new and existing projects.
 
@@ -19,17 +19,17 @@ A 10/10 Claude Code setup that works for both new and existing projects.
 ### 1. Install (one-time)
 
 ```bash
-git clone https://github.com/ahsanahmed321/claude-project-init ~/.claude-templates/project-init
+git clone git@github.com:ahsanahmed321/claude-init.git ~/.claude-templates/claude-init
 ```
 
 Add the alias for your shell:
 
 ```bash
 # zsh
-echo 'alias claude-init="~/.claude-templates/project-init/bootstrap.sh"' >> ~/.zshrc && source ~/.zshrc
+echo 'alias claude-init="~/.claude-templates/claude-init/bootstrap.sh"' >> ~/.zshrc && source ~/.zshrc
 
 # bash
-echo 'alias claude-init="~/.claude-templates/project-init/bootstrap.sh"' >> ~/.bashrc && source ~/.bashrc
+echo 'alias claude-init="~/.claude-templates/claude-init/bootstrap.sh"' >> ~/.bashrc && source ~/.bashrc
 ```
 
 ### 2. Run on any project
