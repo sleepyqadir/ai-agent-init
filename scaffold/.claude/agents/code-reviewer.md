@@ -15,13 +15,12 @@ You review code changes for correctness, quality, and consistency with project s
 ## Preflight
 
 Before reviewing:
+
+**Tests:** Run the project's test command. Find it in CLAUDE.md, `package.json` scripts, `Makefile`, `pyproject.toml`, `go.mod`, or `Cargo.toml`. If none can be determined, ask the user. Never execute a literal placeholder.
+
+**Lint:** Run the project's lint command if one exists. If none can be determined, mark lint as N/A.
+
 ```bash
-# Run tests
-{TEST_COMMAND}
-
-# Run linter if available
-{LINT_COMMAND}
-
 # Check for debug artifacts
 grep -rn "console\.log\|debugger\|print(\|TODO\|FIXME" --include="*.ts" --include="*.js" --include="*.py" .
 ```

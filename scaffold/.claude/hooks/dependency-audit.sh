@@ -42,7 +42,55 @@ if [ -f "package.json" ]; then
   if [ -n "$AUDIT_CMD" ]; then
     echo "Running $AUDIT_CMD..." >&2
     AUDIT_OUTPUT=$($AUDIT_CMD 2>/dev/null || true)
-    CRITICAL=$(echo "$AUDIT_OUTPUT" | python3 -c "
+
+    # Yarn v1 emits newline-delimited JSON events, not a single JSON object.
+    # Detect by checking if AUDIT_CMD is the v1 form and parse accordingly.
+    if echo "$AUDIT_CMD" | grep -q "^yarn audit"; then
+      # Yarn v1: each line is a JSON event; find the summary event for counts
+      CRITICAL=$(echo "$AUDIT_OUTPUT" | python3 -c "
+import json, sys
+critical = 0
+for line in sys.stdin:
+    line = line.strip()
+    if not line:
+        continue
+    try:
+        obj = json.loads(line)
+        if obj.get('type') == 'auditSummary':
+            critical = obj.get('data', {}).get('vulnerabilities', {}).get('critical', 0)
+            break
+    except Exception:
+        continue
+print(critical)
+" 2>/dev/null || echo "0")
+
+      HIGH=$(echo "$AUDIT_OUTPUT" | python3 -c "
+import json, sys
+high = 0
+for line in sys.stdin:
+    line = line.strip()
+    if not line:
+        continue
+    try:
+        obj = json.loads(line)
+        if obj.get('type') == 'auditSummary':
+            high = obj.get('data', {}).get('vulnerabilities', {}).get('high', 0)
+            break
+    except Exception:
+        continue
+print(high)
+" 2>/dev/null || echo "0")
+
+      # If output exists but no auditSummary event was found, warn and continue
+      if [ -n "$AUDIT_OUTPUT" ] && [ "$CRITICAL" = "0" ] && [ "$HIGH" = "0" ]; then
+        HAS_SUMMARY=$(echo "$AUDIT_OUTPUT" | grep -c "auditSummary" 2>/dev/null || echo "0")
+        if [ "$HAS_SUMMARY" = "0" ]; then
+          echo "WARNING: Yarn audit output could not be parsed. Run 'yarn audit' manually." >&2
+        fi
+      fi
+    else
+      # npm / pnpm / Yarn v2+: single JSON object
+      CRITICAL=$(echo "$AUDIT_OUTPUT" | python3 -c "
 import json, sys
 try:
     data = json.load(sys.stdin)
@@ -52,7 +100,7 @@ except:
     print(0)
 " 2>/dev/null || echo "0")
 
-    HIGH=$(echo "$AUDIT_OUTPUT" | python3 -c "
+      HIGH=$(echo "$AUDIT_OUTPUT" | python3 -c "
 import json, sys
 try:
     data = json.load(sys.stdin)
@@ -61,6 +109,7 @@ try:
 except:
     print(0)
 " 2>/dev/null || echo "0")
+    fi
 
     if [ "$CRITICAL" -gt 0 ] 2>/dev/null; then
       echo "CRITICAL: $CRITICAL critical vulnerabilities found. Fix before continuing." >&2
