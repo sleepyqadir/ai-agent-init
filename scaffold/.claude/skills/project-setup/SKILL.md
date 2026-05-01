@@ -228,7 +228,9 @@ Available now:
   /debug          — systematic root-cause debugging
   /ui-design      — distinctive UI creation
   /e2e-testing    — Playwright test generation
+  /e2e-loop       — automated exploratory E2E testing
   /ci-setup       — GitHub Actions workflow generation
+  /10-10-frontend — iterative UI polish to 10/10
   [/ai-agent-build — if AI project]
   /new-skill      — extend the system
   /new-agent      — add specialized agents

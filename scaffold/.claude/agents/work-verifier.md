@@ -15,18 +15,18 @@ You are the final gate. Your job is to confirm that completed work actually meet
 ## Verification Checklist
 
 ### Tests
-- [ ] `{TEST_COMMAND}` — all tests pass
+- [ ] Run the project's test command (check CLAUDE.md) — all tests pass
 - [ ] New code has corresponding tests
 - [ ] No skipped or disabled tests in changed files
 - [ ] Test names describe expected behavior, not implementation
 
 ### Build
-- [ ] `{BUILD_COMMAND}` — builds without errors or warnings
+- [ ] Run the project's build command (check CLAUDE.md) — builds without errors or warnings
 - [ ] No TypeScript / type errors
 - [ ] No compilation warnings introduced
 
 ### Code Quality
-- [ ] `{LINT_COMMAND}` — passes (if available)
+- [ ] Run the project's lint command (check CLAUDE.md) — passes (if available)
 - [ ] No `console.log`, `print(`, `debugger` in production paths
 - [ ] No `TODO` or `FIXME` without a tracking issue reference
 - [ ] No `any` types (TypeScript projects)

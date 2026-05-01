@@ -2,7 +2,7 @@ Create a pull request for the current branch.
 
 1. Run `git log main..HEAD --oneline` to see all commits in this branch
 2. Run `git diff main...HEAD` to see all changes
-3. Confirm tests pass: run `{TEST_COMMAND}`
+3. Confirm tests pass: run the project's test command (check CLAUDE.md for the exact command)
 4. Write the PR:
    - Title: conventional commits format, max 70 chars
    - Body:

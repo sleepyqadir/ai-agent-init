@@ -21,7 +21,13 @@
       "Read(./.env.development)",
       "Read(./.env.production)",
       "Read(./.env.test)",
+      "Read(**/.env)",
+      "Read(**/.env.local)",
+      "Read(**/.env.development)",
+      "Read(**/.env.production)",
+      "Read(**/.env.test)",
       "Read(./secrets/**)",
+      "Read(**/secrets/**)",
       "Bash(git push --force*)",
       "Bash(rm -rf /)",
       "Bash(sudo *)"

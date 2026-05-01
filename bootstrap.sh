@@ -58,6 +58,9 @@ if [ -d "$TARGET/.claude" ]; then
           echo "  + $rel"
         else
           echo "  ~ $rel (kept existing)"
+          if [ "$rel" = ".claude/settings.json" ]; then
+            echo "  ! Existing .claude/settings.json kept. Review it manually to ensure hooks are registered."
+          fi
         fi
       done
       ;;

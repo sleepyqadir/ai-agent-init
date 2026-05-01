@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Security Guard Hook (PreToolUse: Edit, Write, MultiEdit)
-Scans file content for 15 dangerous patterns before allowing writes.
+Scans file content for dangerous patterns before allowing writes.
 Blocks on first new occurrence per file per session (exit code 2).
 Warns on subsequent occurrences (exit code 0 with message).
 """
