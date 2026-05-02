@@ -13,20 +13,27 @@ You set up Claude Code for a project. You handle two modes automatically.
 
 ## Mode Detection
 
-Before asking anything, check the current directory:
+Before asking anything, check the current directory and one level deep:
 
 ```bash
 ls -la
+test -d .git && echo "has git"
 test -f package.json && echo "has package.json"
 test -f requirements.txt && echo "has requirements.txt"
 test -f go.mod && echo "has go.mod"
-test -d .git && echo "has git"
+test -f pyproject.toml && echo "has pyproject.toml"
+test -f Cargo.toml && echo "has Cargo.toml"
 test -d src && echo "has src"
 test -d app && echo "has app"
+# Also scan one level deep for monorepos / multi-project roots
+ls */package.json */requirements.txt */go.mod */pyproject.toml 2>/dev/null | head -5
 ```
 
-**If `.git` exists AND (package.json OR requirements.txt OR go.mod OR src/ OR app/ exists):**
-→ EXISTING PROJECT mode
+**EXISTING PROJECT if ANY of these are true:**
+- `.git` exists at root (monorepo, multi-project workspace)
+- `package.json`, `requirements.txt`, `go.mod`, `pyproject.toml`, `Cargo.toml` exists at root
+- `src/` or `app/` exists at root
+- Any of the above found in an immediate subdirectory
 
 **Otherwise:**
 → NEW PROJECT mode
@@ -134,10 +141,14 @@ Do NOT ask generic questions. Analyze the codebase first, then ask only what you
 
 **Step 1 — Detect stack:**
 ```bash
+# Check root first, then one level deep (for monorepos / multi-project roots)
 cat package.json 2>/dev/null | head -50
 cat requirements.txt 2>/dev/null
+cat pyproject.toml 2>/dev/null | head -20
 cat go.mod 2>/dev/null | head -20
 cat Cargo.toml 2>/dev/null | head -20
+# If nothing found at root, scan subdirectories
+find . -maxdepth 2 -name "package.json" -o -name "requirements.txt" -o -name "pyproject.toml" -o -name "go.mod" -o -name "Cargo.toml" 2>/dev/null | grep -v node_modules | head -10
 ```
 
 **Step 2 — Understand architecture:**

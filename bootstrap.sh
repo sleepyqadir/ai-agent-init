@@ -55,13 +55,49 @@ echo "=== claude-init ==="
 echo "Target: $TARGET"
 echo ""
 
-# Detect if this looks like an existing project
+# Enforce: .git and .claude must always be at the git root.
+# If the target is not the git root, warn and suggest the correct path.
+GIT_ROOT=$(git -C "$TARGET" rev-parse --show-toplevel 2>/dev/null || echo "")
+if [ -n "$GIT_ROOT" ] && [ "$GIT_ROOT" != "$TARGET" ]; then
+  echo "Warning: You are not at the git root."
+  echo "  Git root: $GIT_ROOT"
+  echo "  Target:   $TARGET"
+  echo ""
+  echo ".git and .claude should always be at the git root."
+  echo "Run from the git root instead:"
+  echo ""
+  echo "  cd $GIT_ROOT"
+  echo "  claude-init ."
+  echo ""
+  read -rp "Continue anyway? [y/N]: " confirm
+  case "$confirm" in
+    y|Y) ;;
+    *) echo "Aborted."; exit 0 ;;
+  esac
+  echo ""
+fi
+
+# Detect if this looks like an existing project.
+# Project files can be at root or inside a subfolder (monorepo / multi-project).
 is_existing=false
-if [ -d "$TARGET/.git" ] && \
-   { [ -f "$TARGET/package.json" ] || [ -f "$TARGET/requirements.txt" ] || \
-     [ -f "$TARGET/go.mod" ] || [ -f "$TARGET/Cargo.toml" ] || \
-     [ -d "$TARGET/src" ] || [ -d "$TARGET/app" ]; }; then
+has_project_files() {
+  local dir="$1"
+  [ -f "$dir/package.json" ] || [ -f "$dir/requirements.txt" ] || \
+  [ -f "$dir/go.mod" ] || [ -f "$dir/Cargo.toml" ] || \
+  [ -f "$dir/pyproject.toml" ] || [ -f "$dir/Pipfile" ] || \
+  [ -d "$dir/src" ] || [ -d "$dir/app" ]
+}
+
+if [ -d "$TARGET/.git" ] || has_project_files "$TARGET"; then
   is_existing=true
+else
+  # Scan one level deep for monorepos / multi-project roots
+  for subdir in "$TARGET"/*/; do
+    if [ -d "$subdir" ] && has_project_files "$subdir"; then
+      is_existing=true
+      break
+    fi
+  done
 fi
 
 if [ "$is_existing" = true ]; then
