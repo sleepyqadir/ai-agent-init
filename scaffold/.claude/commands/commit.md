@@ -1,3 +1,7 @@
+---
+description: Create a conventional commit after reviewing staged changes
+---
+
 Run a conventional commit on staged changes.
 
 1. Run `git diff --staged` to review exactly what's being committed

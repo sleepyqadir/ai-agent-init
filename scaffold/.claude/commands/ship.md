@@ -1,5 +1,6 @@
 ---
 disable-model-invocation: true
+description: Verify, review, commit, and create a PR in one user-triggered workflow
 ---
 
 Prepare and ship the current work: verify → commit → PR.

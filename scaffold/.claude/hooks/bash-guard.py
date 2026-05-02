@@ -76,6 +76,20 @@ PATTERNS = [
         "regex": r"\bdocker\s+system\s+prune\s+-a",
         "message": "Docker system prune -a removes all unused images, containers, and volumes. Confirm this is intended.",
     },
+    # Full environment dump
+    {
+        "id": "dump_environment",
+        "name": "Environment variable dump",
+        "regex": r"(?:^|\s)(env|printenv|set|export\s+-p)\s*$",
+        "message": "Dumping the full environment can expose secrets. Print only specific non-sensitive variables.",
+    },
+    # Broad git staging
+    {
+        "id": "git_add_all",
+        "name": "Broad git staging",
+        "regex": r"\bgit\s+add\s+(-A|--all|\.\s*$)",
+        "message": "git add . / git add -A stages all files including unintended ones. Stage files explicitly by name.",
+    },
     # Fork bomb
     {
         "id": "fork_bomb",

@@ -1,3 +1,7 @@
+---
+description: Create an implementation plan before writing code
+---
+
 Enter planning mode for the current task.
 
 1. Read the user's request carefully — what are they actually asking for?

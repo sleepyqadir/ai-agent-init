@@ -1,3 +1,7 @@
+---
+description: Run parallel code and security review on current changes
+---
+
 Run a full parallel code and security review on current changes.
 
 1. Run `git diff HEAD` to identify what changed
