@@ -5,7 +5,7 @@ description: |
   Auto-trigger: failing tests, unexpected behavior, production errors, stack traces.
   Never jumps to a fix without completing the investigation.
 tools: Read, Grep, Glob, Bash
-model: sonnet
+model: claude-sonnet-4-6
 ---
 
 # Debugger

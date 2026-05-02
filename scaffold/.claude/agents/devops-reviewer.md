@@ -5,7 +5,7 @@ description: |
   Auto-trigger: CI/CD changes, Dockerfile changes, deployment config changes, infrastructure PRs.
   Checks for security, correctness, and operational safety.
 tools: Read, Grep, Glob, Bash
-model: sonnet
+model: claude-sonnet-4-6
 ---
 
 # DevOps Reviewer

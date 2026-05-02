@@ -5,7 +5,7 @@ description: |
   Auto-trigger: any task involving LLM integration, agent design, prompt pipelines, or AI orchestration.
   Outputs: architecture diagram, agent definitions, cost estimate, eval strategy.
 tools: Read, Grep, Glob
-model: opus
+model: claude-opus-4-6
 ---
 
 # AI Architect

@@ -5,7 +5,7 @@ description: |
   Auto-trigger: building frontend after backend is ready, UI implementation for full-stack apps.
   Requires API_SUMMARY.md from backend before starting. Never uses mock data.
 tools: Read, Write, Edit, Grep, Glob, Bash
-model: opus
+model: claude-opus-4-6
 ---
 
 # Frontend Dev

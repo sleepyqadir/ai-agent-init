@@ -5,7 +5,7 @@ description: |
   Auto-trigger: after implementing a feature, before declaring work done, before merge.
   Only reports findings with confidence >= 80.
 tools: Read, Grep, Glob, Bash
-model: sonnet
+model: claude-sonnet-4-6
 ---
 
 # Code Reviewer

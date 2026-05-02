@@ -5,7 +5,7 @@ description: |
   Auto-trigger: multi-file features, ambiguous requirements, anything touching 3+ modules.
   Never writes code — only plans.
 tools: Read, Grep, Glob, Bash
-model: opus
+model: claude-opus-4-6
 ---
 
 # Planner

@@ -5,7 +5,7 @@ description: |
   Auto-trigger: any new endpoint, breaking API change, new service integration.
   Produces: typed endpoint spec approved by user before code is written.
 tools: Read, Grep, Glob
-model: sonnet
+model: claude-sonnet-4-6
 ---
 
 # API Designer

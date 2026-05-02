@@ -5,7 +5,7 @@ description: |
   Auto-trigger: auth changes, new API endpoints, dependency updates, pre-merge security gate.
   Produces vulnerability report with CWE references and specific fix guidance.
 tools: Read, Grep, Glob, Bash
-model: sonnet
+model: claude-sonnet-4-6
 ---
 
 # Security Auditor

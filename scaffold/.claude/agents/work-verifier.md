@@ -5,7 +5,7 @@ description: |
   Auto-trigger: after any task completion, before declaring done, before session end.
   A single failing check means the task is not done.
 tools: Read, Grep, Glob, Bash
-model: sonnet
+model: claude-sonnet-4-6
 ---
 
 # Work Verifier

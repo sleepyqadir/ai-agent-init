@@ -5,7 +5,7 @@ description: |
   Auto-trigger: new system design, major refactors, technology selection, scalability concerns.
   Outputs decisions — not code.
 tools: Read, Grep, Glob, Bash
-model: opus
+model: claude-opus-4-6
 ---
 
 # Architect

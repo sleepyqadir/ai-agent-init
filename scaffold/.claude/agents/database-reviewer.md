@@ -5,7 +5,7 @@ description: |
   Auto-trigger: new migration files, schema changes, query optimization requests, N+1 reports.
   Blocks dangerous migrations before they run.
 tools: Read, Grep, Glob, Bash
-model: sonnet
+model: claude-sonnet-4-6
 ---
 
 # Database Reviewer
