@@ -8,7 +8,7 @@ Delegate proactively when trigger conditions are met. Do not wait to be asked.
 | `architect` | New system design, major refactor, technology decision |
 | `code-reviewer` | After implementing a feature, before declaring done |
 | `security-auditor` | Auth changes, API changes, dependency updates, pre-merge |
-| `work-verifier` | After any task completion, before session end |
+| `work-verifier` | Before shipping, committing, or declaring non-trivial implementation done |
 | `debugger` | Any bug investigation — never jump to a fix without investigation |
 | `database-reviewer` | Schema changes, new migrations, query optimization |
 | `api-designer` | New endpoints — design the contract before any implementation |

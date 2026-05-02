@@ -2,15 +2,12 @@
 """
 Bash Guard Hook (PreToolUse: Bash)
 Scans shell commands for dangerous patterns before allowing execution.
-Blocks on first new occurrence per session (exit code 2).
-Warns on subsequent occurrences (exit code 0 with message).
+Always blocks matching commands (exit code 2). No session-state exceptions.
 """
 
 import json
-import os
 import re
 import sys
-import tempfile
 
 PATTERNS = [
     # Secret file access via shell
@@ -88,26 +85,7 @@ PATTERNS = [
     },
 ]
 
-
-def get_state_file(session_id):
-    safe_id = re.sub(r"[^a-zA-Z0-9_.-]", "_", session_id or "default")
-    return os.path.join(tempfile.gettempdir(), f"bash_guard_{safe_id}.json")
-
-
-def load_state(session_id):
-    path = get_state_file(session_id)
-    if os.path.exists(path):
-        try:
-            with open(path) as f:
-                return json.load(f)
-        except Exception:
-            return {}
-    return {}
-
-
-def save_state(state, session_id):
-    with open(get_state_file(session_id), "w") as f:
-        json.dump(state, f)
+SAFE_ENV_FILES = (".env.example", ".env.sample", ".env.template")
 
 
 def main():
@@ -116,7 +94,6 @@ def main():
     except Exception:
         sys.exit(0)
 
-    session_id = hook_input.get("session_id", "default")
     tool_input = hook_input.get("tool_input", {})
     command = tool_input.get("command", "")
 
@@ -126,29 +103,18 @@ def main():
     matches = []
     for p in PATTERNS:
         if re.search(p["regex"], command, re.MULTILINE):
+            if p["id"] in ("cat_env", "grep_env"):
+                if any(safe in command for safe in SAFE_ENV_FILES):
+                    continue
             matches.append(p)
 
     if not matches:
         sys.exit(0)
 
-    state = load_state(session_id)
-    new_warnings = []
-
+    lines = ["Bash security block:"]
     for m in matches:
-        key = m["id"]
-        if key not in state:
-            state[key] = True
-            new_warnings.append(m)
-
-    if not new_warnings:
-        sys.exit(0)
-
-    save_state(state, session_id)
-
-    lines = ["Bash security warning:"]
-    for w in new_warnings:
-        lines.append(f"\n[{w['name']}]")
-        lines.append(w["message"])
+        lines.append(f"\n[{m['name']}]")
+        lines.append(m["message"])
         lines.append(f"Command: {command[:200]}")
 
     print("\n".join(lines), file=sys.stderr)

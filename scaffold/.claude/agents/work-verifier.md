@@ -2,7 +2,7 @@
 name: work-verifier
 description: |
   Comprehensive verification agent. Confirms work is complete, correct, and production-ready.
-  Auto-trigger: after any task completion, before declaring done, before session end.
+  Auto-trigger: before shipping, committing, or declaring non-trivial implementation done.
   A single failing check means the task is not done.
 tools: Read, Grep, Glob, Bash
 model: claude-sonnet-4-6
