@@ -18,7 +18,7 @@ src/
 # Never hardcode. Always from config:
 MODEL_FAST=       # e.g. claude-haiku-4-5  (search, classification, simple tasks)
 MODEL_STANDARD=   # e.g. claude-sonnet-4-6 (standard dev tasks, generation)
-MODEL_QUALITY=    # e.g. claude-opus-4-7   (architecture, critical review)
+MODEL_QUALITY=    # e.g. claude-opus-4-6   (architecture, critical review)
 ```
 
 ### Prompt Conventions
