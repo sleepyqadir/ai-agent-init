@@ -177,13 +177,34 @@ you for a new one) and generate a CLAUDE.md with:
 EOF
 fi
 
-# Add session notes to gitignore
-GITIGNORE_ENTRIES=(
-  ".claude/session-notes.md"
-  ".claude/settings.local.json"
-  ".claude/worktrees/"
-  "CLAUDE.local.md"
-)
+# Ask whether this is a solo or team project
+echo "Who is this setup for?"
+echo ""
+echo "  [t] Team — commit .claude/ to git so everyone shares the same setup"
+echo "  [s] Solo — gitignore .claude/ (not everyone on the team uses Claude)"
+echo ""
+read -rp "Choose [t/s]: " team_choice
+echo ""
+
+# Build gitignore entries based on choice
+if [ "${team_choice,,}" = "s" ]; then
+  GITIGNORE_ENTRIES=(
+    ".claude/"
+    "CLAUDE.md"
+    "CLAUDE.local.md"
+    ".mcp.json.example"
+  )
+  echo "Solo mode — .claude/, CLAUDE.md and .mcp.json.example will be gitignored."
+else
+  GITIGNORE_ENTRIES=(
+    ".claude/session-notes.md"
+    ".claude/settings.local.json"
+    ".claude/worktrees/"
+    "CLAUDE.local.md"
+  )
+  echo "Team mode — .claude/ will be committed. Personal files stay gitignored."
+fi
+echo ""
 
 for entry in "${GITIGNORE_ENTRIES[@]}"; do
   if [ -f "$TARGET/.gitignore" ]; then
