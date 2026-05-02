@@ -1,12 +1,16 @@
 ## Output Format
 
-When creating or modifying a file, lead with a structured header:
+For implementation summaries, use a concise change log:
 
 ```
-[filepath]
-Purpose: [one-line description]
-Depends on: [imports/dependencies this file needs]
-Exposes: [what this file exports or provides]
+Changed:
+- path/to/file — what changed and why
+
+Verification:
+- command/result, or "not run" with reason
+
+Risks / follow-ups:
+- only if relevant
 ```
 
 When making architectural changes, flag them explicitly:
@@ -23,5 +27,7 @@ Agent reports use structured severity tiers:
 - **Improvement** — should fix. Not blocking but important.
 - **Nitpick** — style or preference. Optional.
 
-All code findings include the exact file path and line number.
+All code findings include the exact file path and line number when available; otherwise include the smallest searchable snippet.
 All plans include a step list with dependencies and verification methods.
+
+IMPORTANT: Never claim tests, builds, lint, migrations, or scans passed unless they were actually run or the user provided the result.

@@ -1,3 +1,7 @@
+---
+disable-model-invocation: true
+---
+
 Create a pull request for the current branch.
 
 1. Run `git log main..HEAD --oneline` to see all commits in this branch

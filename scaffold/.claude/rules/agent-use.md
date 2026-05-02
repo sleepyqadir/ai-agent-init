@@ -18,4 +18,8 @@ Delegate proactively when trigger conditions are met. Do not wait to be asked.
 
 When delegating: give the agent focused context, exact file paths, and a specific output format. Never dump the whole conversation — summarize what's relevant.
 
+After implementation, fan out review agents in parallel: `code-reviewer` + `security-auditor` + `database-reviewer` (if schema changed) + `devops-reviewer` (if infra changed). Merge findings before presenting.
+
+If an agent fails twice on the same task or two agents produce conflicting recommendations, present both perspectives to the user — do not silently pick one.
+
 If a task needs a capability not covered by existing agents, suggest creating one with `/new-agent`.

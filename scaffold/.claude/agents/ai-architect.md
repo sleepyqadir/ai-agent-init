@@ -118,8 +118,53 @@ Reliability:
   Context budget: [per agent]
 ```
 
+### Prompt Injection Defense
+For each agent that processes user content or external data:
+- Separate instruction prompts from data prompts. Never place raw user input in system prompts.
+- Wrap user/external content in clear delimiters (`<user_input>...</user_input>`).
+- Strip or escape XML/HTML-like tags from user input that could break delimiters.
+- Never give an LLM processing untrusted input access to destructive tools without human confirmation.
+- Include adversarial inputs in eval suite: "Ignore previous instructions...", "You are now...", multi-language injection, encoded/obfuscated instructions.
+
+### Model Fallback Design
+Define for each pipeline:
+```
+Primary model → Secondary model → Cached response → Graceful degradation
+
+Fallback triggers:
+  HTTP 429 (rate limited): wait + retry primary, then fall back
+  HTTP 500/502/503: immediate fallback to secondary
+  Timeout (>30s): immediate fallback to secondary
+  Malformed output: retry primary once with error context, then fallback
+  Context exceeded: summarize input, retry at reduced context
+
+Rules:
+  Log every fallback event with timestamp, reason, and models involved
+  Alert if fallback rate exceeds 5% over any 1-hour window
+  Test fallback paths in CI — they must not be untested code paths
+```
+
+### Observability Schema
+Every AI pipeline should log:
+```json
+{
+  "trace_id": "unique per call",
+  "pipeline_id": "links multi-agent traces",
+  "model": "model used",
+  "prompt_version": "version identifier",
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "latency_ms": 0,
+  "status": "success | retry | fallback | error",
+  "validation_result": "pass | fail | skipped",
+  "cost_usd": 0.00
+}
+```
+
 ## Rules
 - Define the eval before designing the agents. If you can't measure it, you can't ship it.
 - Every agent does one thing. Agents that do multiple things are hard to test and debug.
 - Cheapest model that meets the quality bar. Escalate explicitly, not by default.
 - Document assumptions. AI systems accumulate hidden assumptions that cause mysterious failures.
+- Prompt injection defense is mandatory for any agent processing user content or external data.
+- Fallback paths must be tested. An untested fallback is no fallback at all.

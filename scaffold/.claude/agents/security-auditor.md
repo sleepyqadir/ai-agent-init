@@ -47,9 +47,47 @@ grep -rn "api_key\s*=\s*['\"][^'\"]\|secret\s*=\s*['\"][^'\"]\|password\s*=\s*['
 # Dangerous functions
 grep -rn "eval(\|exec(\|os\.system(\|pickle\.loads(\|dangerouslySetInnerHTML\|innerHTML\s*=" .
 
+# Mass assignment / raw body pass-through
+grep -rn "\.create(req\.body\|\.update(req\.body\|Model\.objects\.create(\*\*request" --include="*.ts" --include="*.js" --include="*.py" .
+
+# CORS reflection
+grep -rn "Access-Control-Allow-Origin.*req\.\|origin.*req\.headers" --include="*.ts" --include="*.js" --include="*.py" .
+
+# Unsafe deserialization
+grep -rn "pickle\.load\|yaml\.load\|yaml\.unsafe_load\|Marshal\.load\|unserialize(" .
+
+# SSL verification disabled
+grep -rn "verify\s*=\s*False\|rejectUnauthorized.*false\|InsecureSkipVerify.*true" .
+
+# Open redirects
+grep -rn "redirect(req\.query\|redirect(req\.params\|redirect(req\.body" --include="*.ts" --include="*.js" .
+
 # Dependency audit
 npm audit --json 2>/dev/null || pip audit 2>/dev/null || echo "No audit tool found"
 ```
+
+### Additional Checks
+
+**IDOR / Object-Level Authorization:**
+- For every data-access endpoint: verify the handler checks that the authenticated user owns or has permission to access the specific resource, not just that they are logged in.
+
+**CORS Configuration:**
+- Never reflect `req.headers.origin` dynamically without strict allowlist validation.
+- Always include `Vary: Origin` when `Access-Control-Allow-Origin` is dynamic.
+- Never allow origin `null`. Never use `*` on authenticated endpoints.
+
+**File Upload Security:**
+- Validate file type via magic bytes, not just extension/MIME header.
+- Store uploads outside webroot with generated filenames.
+- Strip EXIF metadata from images. Block or sanitize SVG uploads.
+
+**Timing Attacks:**
+- Security-sensitive comparisons (tokens, API keys, HMAC signatures) must use constant-time functions: `crypto.timingSafeEqual()`, `hmac.compare_digest()`.
+
+**Dependency Confusion / Supply Chain:**
+- Verify lockfile is committed. Use `npm ci` (not `npm install`) in CI.
+- Check for typosquatting on new dependencies.
+- Flag unscoped private package names that could collide with public registry.
 
 ## Output
 
@@ -91,3 +129,4 @@ Verdict: SECURE | ISSUES FOUND
 - Provide specific fixes, not generic advice.
 - False positives erode trust. Only report with high confidence.
 - Dependency audit is mandatory when package manifests changed.
+- IDOR is the #1 AI-generated security flaw. Always check object-level authorization explicitly.

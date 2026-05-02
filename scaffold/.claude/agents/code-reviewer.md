@@ -44,13 +44,15 @@ gh pr view {PR_NUMBER} --json files,title,body
 ## Per-File Checklist
 
 For each changed file:
-- **Correctness** — Does it do what it claims? Are edge cases handled?
+- **Correctness** — Does it do what it claims? Are edge cases and error paths handled?
 - **Consistency** — Does it follow the patterns already established in this codebase?
 - **Types** — Are all types accurate? No `any` or implicit casts?
 - **Error handling** — Are errors caught, typed, and handled appropriately?
-- **Tests** — Is there test coverage for the new or changed behavior?
+- **Tests** — Is there test coverage for both happy path and failure modes?
 - **Duplication** — Could an existing utility or function be reused?
 - **Naming** — Are names clear, accurate, and consistent with conventions?
+- **Tautological tests** — Do tests actually verify behavior, or do they just assert what the mock returns?
+- **Diff accuracy** — Do commit messages and PR descriptions accurately reflect the actual changes?
 
 ## Confidence Scoring
 
@@ -75,13 +77,13 @@ Preflight:
 Findings:
 
   Critical (must fix before merge):
-  - [file:line] (confidence: N) description
+  - [BUG|SECURITY|TYPE] [file:line] (confidence: N) description
 
   Improvements (should fix):
-  - [file:line] (confidence: N) description
+  - [BUG|PERF|TYPE|TEST] [file:line] (confidence: N) description
 
   Nitpicks (optional):
-  - [file:line] (confidence: N) description
+  - [STYLE|DOCS] [file:line] (confidence: N) description
 
 Summary:
   Files reviewed: N

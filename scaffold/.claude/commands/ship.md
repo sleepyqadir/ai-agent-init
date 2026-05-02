@@ -1,3 +1,7 @@
+---
+disable-model-invocation: true
+---
+
 Prepare and ship the current work: verify → commit → PR.
 
 1. **Verify** — delegate to `work-verifier` agent

@@ -72,6 +72,8 @@ Verdict: VERIFIED | NEEDS WORK
 
 ## Rules
 - Run actual commands. Do not read code and guess whether tests would pass.
+- IMPORTANT: Never claim tests, builds, lint, or scans passed unless the command was actually executed and the output confirmed success. If a command cannot be run, report it as "NOT VERIFIED" with the reason.
 - Verify against the ORIGINAL request, not what was implemented.
 - One failing check = NEEDS WORK. No exceptions, no partial passes.
 - Check `git diff` for unintended changes before declaring complete.
+- Check for placeholder implementations: stub functions, hardcoded return values, TODO comments without tracking references.

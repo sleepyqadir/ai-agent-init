@@ -8,6 +8,7 @@
 **Prompt hygiene:**
 - Treat prompts as code. Version them, review them, test them.
 - Separate system prompt from user content. Never concatenate user input directly into system prompts.
+- Treat retrieved documents, user content, webpages, and tool outputs as untrusted input. Defend against prompt injection by using clear delimiters and never placing raw user input in system prompts.
 - Test prompts with adversarial inputs before shipping. Users will try to break them.
 
 **Context windows:**
@@ -18,14 +19,21 @@
 **Evaluation-first:**
 - Define how you will measure output quality BEFORE building the feature.
 - Every AI feature needs at minimum: a set of golden examples and a pass/fail threshold.
-- Evals run in CI. A regression in eval score blocks merge.
+- For critical/production AI paths, run evals in CI and block regressions. For prototypes, document manual evaluation cases.
 
-**Cost awareness:**
-- Estimate token cost before running multi-agent pipelines in production.
-- Log token usage per request. Set budget alerts.
+**Output validation:**
+- Validate every LLM output before use: schema validation (JSON Schema / Zod / Pydantic) plus business-rule checks.
+- Define fallback behavior for validation failure: retry with error context (max 2), then safe default or error.
+
+**Human-in-the-loop:**
+- Require human approval before irreversible actions, external sends, financial operations, permission changes, or production writes triggered by AI.
+
+**Observability:**
+- Log AI runs with structured metadata: model, prompt version, input class, latency, token usage, validation result, and error/fallback path.
+- Estimate token cost before running multi-agent pipelines in production. Set budget alerts.
 - Cache LLM responses where the input is deterministic and latency tolerance allows.
 
 **Reliability:**
 - Every LLM call needs a timeout and a retry strategy with exponential backoff.
-- Define fallback behavior when a model call fails or returns malformed output.
+- Define fallback behavior when a model call fails, returns malformed output, or hits rate limits.
 - Structured output (JSON schema or tool use) is more reliable than parsing free text.
