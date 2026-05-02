@@ -99,7 +99,19 @@ PATTERNS = [
     },
 ]
 
-SAFE_ENV_FILES = (".env.example", ".env.sample", ".env.template")
+SAFE_ENV_FILES = {".env.example", ".env.sample", ".env.template"}
+
+
+def has_unsafe_env_file(command):
+    """Check if a command references any .env file that is NOT a safe template."""
+    env_paths = re.findall(r"(?:^|\s)([^\s'\";|&]*\.env(?:\.[^\s'\";|&]+)?)", command)
+    if not env_paths:
+        return True
+    for path in env_paths:
+        name = path.strip("'\"").split("/")[-1]
+        if name not in SAFE_ENV_FILES:
+            return True
+    return False
 
 
 def main():
@@ -118,7 +130,7 @@ def main():
     for p in PATTERNS:
         if re.search(p["regex"], command, re.MULTILINE):
             if p["id"] in ("cat_env", "grep_env"):
-                if any(safe in command for safe in SAFE_ENV_FILES):
+                if not has_unsafe_env_file(command):
                     continue
             matches.append(p)
 
