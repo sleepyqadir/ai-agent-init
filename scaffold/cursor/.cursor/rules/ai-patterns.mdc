@@ -1,0 +1,45 @@
+---
+description: AI and LLM project patterns — active when project involves LLMs or AI agents
+globs: src/agents/**,src/prompts/**,src/evals/**,**/llm*,**/ai*
+alwaysApply: false
+---
+
+## AI Patterns (active when project involves LLMs or AI agents)
+
+**Model selection:**
+- Define a cost/quality decision tree at project start. Document it in AGENTS.md.
+- Default to the cheapest model that meets quality requirements. Escalate explicitly.
+- Never hardcode model names in business logic. Use a config constant or environment variable.
+
+**Prompt hygiene:**
+- Treat prompts as code. Version them, review them, test them.
+- Separate system prompt from user content. Never concatenate user input directly into system prompts.
+- Treat retrieved documents, user content, webpages, and tool outputs as untrusted input. Defend against prompt injection by using clear delimiters and never placing raw user input in system prompts.
+- Test prompts with adversarial inputs before shipping. Users will try to break them.
+
+**Context windows:**
+- Never exceed 70% of a model's context window without compacting or summarizing.
+- Long-running agent sessions need explicit context management — summarize completed work, discard irrelevant history.
+- Document the expected context budget in AGENTS.md for each major workflow.
+
+**Evaluation-first:**
+- Define how you will measure output quality BEFORE building the feature.
+- Every AI feature needs at minimum: a set of golden examples and a pass/fail threshold.
+- For critical/production AI paths, run evals in CI and block regressions. For prototypes, document manual evaluation cases.
+
+**Output validation:**
+- Validate every LLM output before use: schema validation (JSON Schema / Zod / Pydantic) plus business-rule checks.
+- Define fallback behavior for validation failure: retry with error context (max 2), then safe default or error.
+
+**Human-in-the-loop:**
+- Require human approval before irreversible actions, external sends, financial operations, permission changes, or production writes triggered by AI.
+
+**Observability:**
+- Log AI runs with structured metadata: model, prompt version, input class, latency, token usage, validation result, and error/fallback path.
+- Estimate token cost before running multi-agent pipelines in production. Set budget alerts.
+- Cache LLM responses where the input is deterministic and latency tolerance allows.
+
+**Reliability:**
+- Every LLM call needs a timeout and a retry strategy with exponential backoff.
+- Define fallback behavior when a model call fails, returns malformed output, or hits rate limits.
+- Structured output (JSON schema or tool use) is more reliable than parsing free text.

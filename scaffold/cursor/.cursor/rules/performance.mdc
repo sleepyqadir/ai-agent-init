@@ -1,0 +1,25 @@
+---
+description: Performance and context management rules for model selection and tool use
+alwaysApply: true
+---
+
+## Performance and Context
+
+**Model selection:**
+- Use the model that matches the task complexity. Prefer faster, cheaper models for simple lookups, generation, summarization, and formatting. Use more capable models for architecture decisions, complex multi-step reasoning, and critical security review.
+- Change the model in Cursor's model picker before starting a task when the default is over- or under-powered for the job.
+
+**Context management:**
+- Use Task subagents to protect the main context. Each subagent gets a fresh window and returns a summary.
+- The main conversation holds summaries, not raw output from subagent work.
+- Glob and Grep before Read for large or unknown files. Read small, directly relevant files fully when complete context prevents mistakes.
+- When context grows long, summarize completed work and reset focus to remaining tasks.
+- Never load large files unnecessarily. Read only the sections relevant to the task.
+- Keep the active working set to 5–7 files. Release files from focus when no longer being edited.
+
+**Tool use:**
+- Make independent tool calls in parallel. Reading 3 files? Read them simultaneously.
+- Only call tools you need. Unnecessary reads burn context and tokens.
+- Use the `explore` subagent type for broad codebase reconnaissance — it operates read-only and is optimized for fast search.
+- Use the `shell` subagent type for isolated command execution that shouldn't pollute the main context.
+- Use the `generalPurpose` subagent type for multi-step research tasks with write access.

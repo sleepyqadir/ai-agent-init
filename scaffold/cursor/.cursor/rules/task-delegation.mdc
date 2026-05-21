@@ -1,0 +1,68 @@
+---
+description: When and how to delegate work to Task subagents or invoke skills for specialized workflows
+alwaysApply: true
+---
+
+## Task Delegation
+
+Delegate proactively when trigger conditions are met. Do not wait to be asked.
+
+### When to Use Task Subagents
+
+| Trigger | Subagent type | What to delegate |
+|---|---|---|
+| Multi-file features, ambiguous requirements, 3+ modules | `generalPurpose` | Full planning — exploration + step breakdown + dependencies |
+| New system design, major refactor, tech selection | `generalPurpose` | Architecture analysis, options comparison, ADR draft |
+| After implementing a feature, before declaring done | `generalPurpose` | Code quality review — correctness, patterns, tests, types |
+| Auth changes, API changes, dependency updates, pre-merge | `generalPurpose` | Security audit — OWASP Top 10, pattern scanning, CVE check |
+| Before shipping, committing, or declaring done | `generalPurpose` | Verification — tests, build, lint, requirements, regressions |
+| Any bug investigation | `generalPurpose` | Root-cause debugging — never jump to a fix without investigation |
+| Schema changes, migrations, query optimization | `generalPurpose` | Database schema review and migration safety check |
+| New endpoints, breaking API changes | `generalPurpose` | Contract-first API design — design before implementation |
+| Any LLM integration, agent design, AI orchestration | `generalPurpose` | AI architecture — patterns, cost estimates, eval strategy |
+| CI/CD changes, Dockerfile, deployment configs | `generalPurpose` | DevOps review — security, correctness, operational safety |
+| Frontend build after backend is ready | `generalPurpose` | Frontend implementation — wire to real APIs, polish to 10/10 |
+| Broad codebase reconnaissance, file pattern search | `explore` | Read-only codebase analysis — fast, no write access needed |
+| Isolated shell commands, git operations | `shell` | Terminal tasks that shouldn't pollute main context |
+
+### How to Delegate Effectively
+
+When delegating, always provide:
+1. The specific task in one sentence
+2. Relevant file paths or areas of the codebase
+3. The expected output format
+4. Any constraints or context the subagent needs
+
+**Never dump the whole conversation.** Summarize what's relevant. Focused context produces focused output.
+
+### After Implementation — Fan-Out Review
+
+After implementing any non-trivial feature, launch review subagents in parallel:
+- Code quality review (`generalPurpose`) — correctness, patterns, tests, types
+- Security audit (`generalPurpose`) — OWASP, injection, secrets, dependencies
+- Database review (`generalPurpose`) — if schema changed
+- DevOps review (`generalPurpose`) — if infra or CI/CD changed
+
+Merge all findings before presenting to the user. Lead with Critical findings.
+
+### Invoke Skills for Structured Workflows
+
+Instead of (or alongside) subagents, use these skills for guided multi-phase workflows:
+
+| Task | Use skill |
+|---|---|
+| Multi-file feature development | `feature-dev` |
+| API endpoint design | `api-design` |
+| Test-driven development | `tdd` |
+| Database migration | `database-migrate` |
+| Building AI agents or LLM pipelines | `ai-agent-build` |
+| Systematic debugging | `debug` |
+| UI component or page building | `ui-design` |
+| End-to-end Playwright tests | `e2e-testing` |
+| Exploratory E2E testing loop | `e2e-loop` |
+| Iterative frontend polish | `10-10-frontend` |
+| GitHub Actions CI/CD setup | `ci-setup` |
+
+If two subagents produce conflicting recommendations, present both perspectives to the user — do not silently pick one.
+
+If a task needs a capability not covered by existing skills, create one with `new-skill`.

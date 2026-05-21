@@ -1,0 +1,28 @@
+---
+description: Security rules covering OWASP, secrets, validation, and safe coding patterns
+alwaysApply: true
+---
+
+## Security
+
+- No hardcoded secrets. Keys, tokens, passwords, and connection strings live in environment variables only.
+- Validate all input at system boundaries: HTTP request bodies, query params, path params, webhook payloads.
+- Parameterized queries for all database operations. String concatenation into SQL is never acceptable.
+- Sanitize output. Never use `innerHTML`, `dangerouslySetInnerHTML`, or `document.write` without sanitization.
+- Never use `eval()`, `new Function()`, or `exec()` with user-controlled input.
+- Authentication is not authorization. Every protected read/write must verify ownership, tenant, role, or permission — not just that the user is logged in.
+- Never pass raw request bodies directly into ORM create/update. Allowlist accepted fields to prevent mass assignment.
+- Canonicalize and constrain file paths to an approved base directory before reading or writing. Reject `..`, null bytes, and symlink escapes.
+- Treat user-provided URLs as SSRF risks: validate scheme/host and reject private/internal IP ranges.
+- Validate redirect targets against an allowlist or same-origin policy. Never redirect to `req.query.returnUrl` unvalidated.
+- Use bcrypt/argon2id for passwords, CSPRNG for tokens (`crypto.randomBytes`, `secrets.token_urlsafe`), and never MD5/SHA/`Math.random()` for security-sensitive values.
+- Never disable SSL/TLS verification to "fix" connection errors.
+- Never deserialize untrusted input with unsafe loaders (`pickle.loads`, `yaml.load` without SafeLoader).
+- For file uploads: validate size/type/content, store outside executable/webroot paths, and generate safe server-side filenames.
+- Auth tokens: short expiry, httpOnly cookies or secure storage, never in localStorage for sensitive tokens.
+- Set security headers: CORS policy, CSP, X-Content-Type-Options, X-Frame-Options, Referrer-Policy.
+- Never expose secrets in URLs, query parameters, logs, or error messages. Sanitize structured logs.
+- Log security events (auth failures, permission denials, anomalies). Never log secrets or credentials.
+- Run the project's dependency audit tool on dependency changes. Pin versions in production manifests.
+- Rate-limit all public endpoints. Authentication endpoints get stricter limits.
+- OWASP Top 10 awareness: injection, broken access control, cryptographic failures, insecure design, misconfiguration, vulnerable components, auth failures, data integrity failures, logging failures, SSRF.
