@@ -1,9 +1,6 @@
 ---
 name: ci-setup
-description: |
-  Use when setting up or improving a CI/CD pipeline.
-  Triggers: "set up CI", "GitHub Actions", "add CI/CD", "automate deployment", "pipeline".
-  Generates a tailored GitHub Actions workflow with test, lint, build, and optional deploy gates.
+description: Generate a GitHub Actions CI/CD workflow with test, lint, build, and optional deploy gates.
 ---
 
 # CI Setup

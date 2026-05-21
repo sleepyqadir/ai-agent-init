@@ -1,6 +1,6 @@
 ---
 name: ship
-description: Verify, review, commit, and create a PR in one user-triggered workflow. Triggers: "ship this", "ship my work", "ship it", the full ship pipeline.
+description: Full pipeline to verify, review, commit, and create a PR for the current work.
 disable-model-invocation: true
 ---
 
@@ -8,46 +8,43 @@ disable-model-invocation: true
 
 Prepare and ship the current work: verify → review → commit → PR.
 
-1. **Verify** — launch a `generalPurpose` Task subagent to run the verification checklist:
+## Auth Preflight
 
-   The subagent must actually run these commands (not estimate):
-   - Run the project's test command (check AGENTS.md) — all tests pass
-   - Run the project's build command — builds without errors or warnings
-   - Run the project's lint command — passes (if available)
-   - Check for debug artifacts: `console.log`, `print(`, `debugger`, `TODO`, `FIXME`
-   - Check `git diff` for unintended changes
-   - Verify new environment variables are documented in `.env.example`
-   - Confirm database migrations are included if schema changed
+Run before anything else. Surface output only on failure:
+1. `gh auth status` — if fails, tell user to run `gh auth login` and stop
+2. `git remote get-url origin` — if SSH, run `ssh -T git@github.com 2>&1 || true` — warn if fails
+3. Set `GIT_TERMINAL_PROMPT=0` for all git operations
 
-   Output format:
+## Steps
+
+1. **Verify** — launch a `generalPurpose` Task subagent to run these commands (run them, do not estimate):
+   - Project test command (from AGENTS.md)
+   - Project build command
+   - Project lint command (if available)
+   - `grep -rn "console\.log\|debugger\|print(" .` for debug artifacts
+   - `git diff` for unintended changes
+   - Check `.env.example` updated if new env vars added
+   - Check migrations included if schema changed
+
+   Subagent reports a compact status line:
    ```
-   === Work Verification ===
-   | Check            | Status       | Notes     |
-   | Tests            | PASS / FAIL  | [details] |
-   | Build            | PASS / FAIL  | [details] |
-   | Lint             | PASS / FAIL / N/A | [details] |
-   | Requirements     | PASS / FAIL  | [missing] |
-   | Deploy readiness | PASS / FAIL  | [missing] |
-
-   Verdict: VERIFIED | NEEDS WORK
+   Tests: PASS | Build: PASS | Lint: PASS | Artifacts: none | Unintended changes: none
+   Verdict: VERIFIED
    ```
+   If NEEDS WORK: stop and fix before proceeding.
 
-   If verdict is NEEDS WORK: stop here and fix before proceeding.
+2. **Review** — use the `review` skill. If REQUEST CHANGES: stop and fix.
 
-2. **Review** — use the `review` skill
-   - Code quality and security review in parallel
-   - If REQUEST CHANGES: stop here and fix before proceeding
+3. **Commit** — use the `commit` skill (includes auth preflight, artifact check, confirmation).
 
-3. **Commit** — use the `commit` skill
-   - Stage all relevant changes
-   - Write conventional commit message
-   - Show to user for confirmation
+4. **PR** — use the `pr` skill (includes auth preflight, test check, confirmation).
 
-4. **PR** — use the `pr` skill
-   - Draft PR with what/why/testing sections
-   - Show to user for confirmation
-   - Create PR with `gh pr create`
+5. Report the PR URL.
 
-5. **Confirm** — show user the PR URL
+## Output Rules
+
+- No narration between phases — no "Now moving to review...", "Let me now..."
+- Each gate: state what failed and stop, or proceed to the next phase
+- Final output: PR URL only
 
 Do not skip steps. Each gate exists because skipping it causes production incidents.

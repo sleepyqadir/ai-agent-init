@@ -1,6 +1,6 @@
 ---
 name: project-setup
-description: Use when setting up Cursor for a project — new or existing. Triggers: "setup project", "initialize cursor", "bootstrap", "configure this repo", "set up cursor for this project". Detects new vs existing automatically. Generates AGENTS.md from codebase analysis or interview.
+description: Set up Cursor for a new or existing project and generate AGENTS.md from codebase analysis or interview.
 ---
 
 # Project Setup

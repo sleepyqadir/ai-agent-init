@@ -1,11 +1,45 @@
 #!/usr/bin/env bash
-# One-time install: registers the aiagent-init command in your shell.
+# install.sh — works two ways:
+#   1. Piped from curl (no local clone):
+#      curl -fsSL https://raw.githubusercontent.com/sleepyqadir/ai-agent-init/master/install.sh | bash
+#   2. Run locally from inside the repo:
+#      ./install.sh
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_URL="https://github.com/sleepyqadir/ai-agent-init.git"
+INSTALL_DIR="$HOME/.aiagent-init"
+
+# ── Detect mode ───────────────────────────────────────────────────────────────
+# When piped from curl, $0 is "bash" and there is no BASH_SOURCE[0] pointing
+# to a real file. We detect this by checking whether bootstrap.sh exists next
+# to the script. If not, we're in curl-pipe mode and must clone the repo first.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || echo "")"
+
+if [ -z "$SCRIPT_DIR" ] || [ ! -f "$SCRIPT_DIR/bootstrap.sh" ]; then
+  # ── Curl-pipe mode: clone or update the repo ────────────────────────────────
+  echo "Installing aiagent-init..."
+  echo ""
+
+  if ! command -v git > /dev/null 2>&1; then
+    echo "Error: git is required but not found in PATH." >&2
+    echo "Install git and try again." >&2
+    exit 1
+  fi
+
+  if [ -d "$INSTALL_DIR/.git" ]; then
+    echo "  Found existing install at $INSTALL_DIR — pulling latest..."
+    git -C "$INSTALL_DIR" pull --ff-only 2>&1 | sed 's/^/  /'
+  else
+    echo "  Cloning into $INSTALL_DIR..."
+    git clone --depth=1 "$REPO_URL" "$INSTALL_DIR" 2>&1 | sed 's/^/  /'
+  fi
+
+  SCRIPT_DIR="$INSTALL_DIR"
+  echo ""
+fi
+
 BOOTSTRAP="$SCRIPT_DIR/bootstrap.sh"
-ALIAS_LINE="alias aiagent-init=\"$BOOTSTRAP\""
 
 # Verify bootstrap.sh is present before wiring the alias
 if [ ! -f "$BOOTSTRAP" ]; then
@@ -13,6 +47,10 @@ if [ ! -f "$BOOTSTRAP" ]; then
   echo "Is the aiagent-init repo intact?" >&2
   exit 1
 fi
+
+ALIAS_LINE="alias aiagent-init=\"$BOOTSTRAP\""
+
+# ── Shell alias helpers ───────────────────────────────────────────────────────
 
 # add_alias <rc_file>
 # Returns: 0=file found and handled, 1=file not found (skipped)
@@ -42,7 +80,7 @@ add_alias() {
   return 0
 }
 
-echo "Installing aiagent-init..."
+echo "Wiring shell alias..."
 echo ""
 
 any_installed=false
@@ -88,21 +126,21 @@ if $any_installed; then
       echo "  source ~/.bashrc  # if you use bash"
       ;;
   esac
-echo ""
-echo "Then use:"
-echo "  aiagent-init --claude .    (Claude Code setup)"
-echo "  aiagent-init --cursor .    (Cursor setup)"
-echo "  aiagent-init --both .      (both platforms)"
-echo ""
-echo "Optional: enable tab completion:"
-if [ "$detected_shell" = "zsh" ]; then
-  echo "  source $SCRIPT_DIR/completions/aiagent-init.zsh"
-elif [ "$detected_shell" = "bash" ]; then
-  echo "  source $SCRIPT_DIR/completions/aiagent-init.bash"
-else
-  echo "  source $SCRIPT_DIR/completions/aiagent-init.zsh  # zsh"
-  echo "  source $SCRIPT_DIR/completions/aiagent-init.bash # bash"
-fi
+  echo ""
+  echo "Then use:"
+  echo "  aiagent-init --claude .    (Claude Code setup)"
+  echo "  aiagent-init --cursor .    (Cursor setup)"
+  echo "  aiagent-init --both .      (both platforms)"
+  echo ""
+  echo "Optional: enable tab completion:"
+  if [ "$detected_shell" = "zsh" ]; then
+    echo "  source $SCRIPT_DIR/completions/aiagent-init.zsh"
+  elif [ "$detected_shell" = "bash" ]; then
+    echo "  source $SCRIPT_DIR/completions/aiagent-init.bash"
+  else
+    echo "  source $SCRIPT_DIR/completions/aiagent-init.zsh  # zsh"
+    echo "  source $SCRIPT_DIR/completions/aiagent-init.bash # bash"
+  fi
 else
   echo "Warning: No shell rc files found and nothing was installed." >&2
   echo "Manually add this line to your shell config:" >&2

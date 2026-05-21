@@ -1,9 +1,6 @@
 ---
 name: new-agent
-description: |
-  Use when creating a new specialized agent for this project.
-  Triggers: "create agent", "new agent", "add agent", "I need an agent for".
-  Guides through creating a focused, well-defined agent.
+description: Create a new specialized Claude Code agent with a focused role, defined tools, and explicit output contract.
 ---
 
 # New Agent

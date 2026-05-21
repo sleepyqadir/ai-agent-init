@@ -1,6 +1,6 @@
 ---
 name: feature-dev
-description: Use when implementing a feature that touches multiple files or modules. Triggers: "implement feature", "build this", "add this functionality", any multi-file change. 7 phases. No code before Phase 5. No exceptions.
+description: Implement a multi-file feature through a 7-phase workflow — explore, design, implement, review. No code before Phase 5.
 ---
 
 # Feature Development

@@ -1,6 +1,6 @@
 ---
 name: new-rule
-description: Use when creating a new Cursor rule for this project. Triggers: "create rule", "new rule", "add rule", "I need a rule for", "add coding standard". Guides through creating a well-structured .mdc rule file.
+description: Create a new persistent Cursor rule (.mdc file) for always-on coding standards or file-specific guidance.
 ---
 
 # New Rule

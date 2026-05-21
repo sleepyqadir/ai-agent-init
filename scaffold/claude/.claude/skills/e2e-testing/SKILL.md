@@ -1,9 +1,6 @@
 ---
 name: e2e-testing
-description: |
-  Use when writing end-to-end tests for a web application.
-  Triggers: "E2E tests", "Playwright tests", "end-to-end", "integration tests for the UI", "browser tests".
-  Reconnaissance first — map all routes before writing a single test.
+description: Write Playwright end-to-end tests for a web application, mapping all routes before writing a single test.
 ---
 
 # E2E Testing

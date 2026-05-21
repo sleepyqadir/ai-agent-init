@@ -1,9 +1,6 @@
 ---
 name: ai-agent-build
-description: |
-  Use when building AI agents, LLM pipelines, or multi-agent systems.
-  Triggers: "build an agent", "create AI pipeline", "LLM workflow", "agent system", "multi-agent".
-  Forces evaluation definition BEFORE implementation. Covers orchestration, cost, and reliability.
+description: Build AI agents, LLM pipelines, or multi-agent systems with eval-first methodology covering orchestration, cost, and reliability.
 ---
 
 # AI Agent Build

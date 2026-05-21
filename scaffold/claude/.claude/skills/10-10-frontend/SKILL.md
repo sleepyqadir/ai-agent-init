@@ -1,9 +1,6 @@
 ---
 name: 10-10-frontend
-description: |
-  Use when polishing a frontend design through iterative visual evaluation.
-  Triggers: "make it look perfect", "10/10 design", "polish the UI", "iterate on design", "improve the visuals".
-  Takes screenshots with Playwright, scores each criterion, fixes weak areas, repeats until 10/10.
+description: Polish a frontend design iteratively using real screenshots until every visual criterion scores 10/10.
 ---
 
 # 10/10 Frontend

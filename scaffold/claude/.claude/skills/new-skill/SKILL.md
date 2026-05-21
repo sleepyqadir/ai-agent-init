@@ -1,9 +1,6 @@
 ---
 name: new-skill
-description: |
-  Use when creating a new skill for this project.
-  Triggers: "create skill", "new skill", "add skill", "I need a skill for".
-  Guides through creating a well-structured, useful skill.
+description: Create a new on-demand Claude Code skill for a repeatable multi-step workflow.
 ---
 
 # New Skill

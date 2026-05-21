@@ -1,9 +1,6 @@
 ---
 name: project-setup
-description: |
-  Use when setting up Claude Code for a project — new or existing.
-  Triggers: "setup project", "initialize claude", "bootstrap", "configure this repo", "set up claude for this project".
-  Detects new vs existing automatically. Generates CLAUDE.md from codebase analysis or interview.
+description: Set up Claude Code for a new or existing project and generate CLAUDE.md from codebase analysis or interview.
 argument-hint: [optional: project description]
 ---
 

@@ -1,9 +1,6 @@
 ---
 name: debug
-description: |
-  Use when investigating a bug, failing test, or unexpected behavior.
-  Triggers: "why is this failing", "debug", "investigate", "root cause", stack traces, error output.
-  Investigates before fixing. Never jumps to a solution without evidence.
+description: Investigate bugs and unexpected behavior systematically — reproduce, gather evidence, hypothesize, then fix.
 ---
 
 # Debug

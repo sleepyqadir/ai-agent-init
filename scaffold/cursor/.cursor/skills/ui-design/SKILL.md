@@ -1,6 +1,6 @@
 ---
 name: ui-design
-description: Use when building web UI — components, pages, or full layouts. Triggers: "build UI", "create component", "design page", "frontend", building anything visual. Creates distinctive, intentional designs. Not generic AI output.
+description: Build web UI components, pages, or layouts with intentional design — hierarchy, states, and responsive behavior included.
 ---
 
 # UI Design

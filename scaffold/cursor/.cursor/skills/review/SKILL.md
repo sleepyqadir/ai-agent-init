@@ -1,6 +1,6 @@
 ---
 name: review
-description: Run parallel code quality and security review on current changes. Triggers: "review my code", "review changes", "code review", "security review", "review before merge".
+description: Run parallel code quality and security review on current changes before merging.
 disable-model-invocation: true
 ---
 
@@ -19,50 +19,46 @@ Run a full parallel code and security review on current changes.
    - Grep for debug artifacts: `console.log`, `debugger`, `print(`, `TODO`, `FIXME`
    - If tests fail → report REQUEST CHANGES immediately
 
-   Per-file review:
+   Per-file review (confidence ≥80% only):
    - **Correctness** — does it do what it claims? Edge cases and error paths handled?
    - **Consistency** — does it follow patterns already established in this codebase?
    - **Types** — all types accurate? No `any` or implicit casts?
    - **Error handling** — errors caught, typed, and handled appropriately?
-   - **Tests** — coverage for both happy path and failure modes?
+   - **Tests** — coverage for happy path and failure modes? No tautological tests?
    - **Duplication** — could an existing utility be reused?
    - **Naming** — clear, accurate, consistent with conventions?
-   - **Tautological tests** — do tests actually verify behavior, or just assert what the mock returns?
-
-   Confidence scoring: only report findings with confidence ≥80%.
 
    **Security Review subagent** — provide the git diff and instruct it to:
 
    Run pattern scans:
    ```bash
-   # SQL injection candidates
    grep -rn "query.*+\|execute.*+\|raw.*+" --include="*.ts" --include="*.py" .
-
-   # Hardcoded secrets
    grep -rn "api_key\s*=\s*['\"][^'\"]\|secret\s*=\s*['\"][^'\"]" .
-
-   # Dangerous functions
    grep -rn "eval(\|exec(\|os\.system(\|dangerouslySetInnerHTML\|innerHTML\s*=" .
-
-   # Dependency audit
    npm audit --json 2>/dev/null || pip-audit 2>/dev/null || echo "No audit tool found"
    ```
 
-   Check for OWASP Top 10:
-   - **A01 Broken Access Control** — IDOR, missing auth checks, path traversal
-   - **A02 Cryptographic Failures** — hardcoded secrets, weak algorithms, plaintext sensitive data
-   - **A03 Injection** — SQL, command, XSS, template injection
-   - **A04 Insecure Design** — missing rate limiting, unsafe defaults
-   - **A07 Auth Failures** — weak session management, missing token expiry
-   - **A10 SSRF** — unvalidated URLs, internal endpoint access
-
-   Report with CWE references and specific fixes.
+   Check OWASP Top 10: A01 (broken access control), A02 (crypto failures), A03 (injection), A04 (insecure design), A07 (auth failures), A10 (SSRF). Report with CWE references and specific fixes.
 
 3. Wait for both to complete
-4. Merge findings into a single report:
-   - Lead with any Critical findings from either review
-   - Then Improvements
-   - Then Nitpicks
-5. Give an overall verdict: APPROVED | REQUEST CHANGES
+4. Merge findings into a single report using this format:
 
-If `REQUEST CHANGES`: list exactly what must be fixed before merge.
+   ```
+   file.ts L42: bug — <problem>. <fix>.
+   file.ts L88-140: nit — <problem>. <fix>.
+   file.ts L15: risk — <problem>. <fix>.
+
+   Tests: PASS | Lint: PASS
+   Verdict: APPROVED | REQUEST CHANGES
+   ```
+
+   Lead with bug findings first, then risk, then nit.
+
+5. If REQUEST CHANGES: list exactly what must be fixed before merge.
+
+## Output Rules
+
+- Each finding is one line: `file:line: severity — problem. fix.`
+- No hedging ("I noticed...", "you might want to...") — state findings directly
+- No restating what the code does — only what's wrong and how to fix it
+- Verdict is always explicit: APPROVED or REQUEST CHANGES

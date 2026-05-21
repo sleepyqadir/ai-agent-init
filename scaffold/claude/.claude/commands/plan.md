@@ -1,5 +1,5 @@
 ---
-description: Create an implementation plan before writing code
+description: Create a step-by-step implementation plan before writing code for complex or ambiguous tasks.
 ---
 
 Enter planning mode for the current task.

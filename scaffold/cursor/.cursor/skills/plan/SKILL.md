@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Create an implementation plan before writing code. Triggers: "plan this", "plan before coding", "create a plan", "implementation plan", any multi-file or ambiguous task.
+description: Create a step-by-step implementation plan before writing code for complex or ambiguous tasks.
 disable-model-invocation: true
 ---
 

@@ -39,10 +39,11 @@ PATTERNS = [
         "message": "Printing secret environment variables to stdout. Secrets should never appear in command output.",
     },
     # Dangerous downloads piped to shell
+    # Exempts trusted raw.githubusercontent.com and github.com installer URLs
     {
         "id": "curl_pipe_bash",
         "name": "Piping download to shell",
-        "regex": r"(curl|wget)\s+.*\|\s*(bash|sh|zsh|sudo)",
+        "regex": r"(curl|wget)\s+(?!.*raw\.githubusercontent\.com)(?!.*github\.com).*\|\s*(bash|sh|zsh|sudo)",
         "message": "Piping downloads directly to shell executes unreviewed code. Download first, review, then execute.",
     },
     # Dangerous permissions

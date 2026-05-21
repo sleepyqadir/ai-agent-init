@@ -1,0 +1,8 @@
+.cursor/skills/
+.cursor/rules/
+.cursor/hooks/
+.cursor/hooks.json
+AGENTS.md
+.cursor/session-notes.md
+.cursor/mcp.json.example
+.cursor/.aiagent-init-version

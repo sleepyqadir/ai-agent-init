@@ -1,9 +1,6 @@
 ---
 name: e2e-loop
-description: |
-  Use when doing automated exploratory E2E testing on a running web application.
-  Triggers: "exploratory testing", "test this app", "find bugs", "e2e loop", "run e2e tests".
-  Maps the app, then tests every page deeply — clicks buttons, fills forms, verifies database state.
+description: Run automated exploratory E2E testing on a running web app — maps routes, clicks everything, and verifies database state.
 ---
 
 # E2E Loop (Exploratory Testing)

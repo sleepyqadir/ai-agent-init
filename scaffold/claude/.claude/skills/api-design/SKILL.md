@@ -1,9 +1,6 @@
 ---
 name: api-design
-description: |
-  Use when adding new API endpoints or changing existing ones.
-  Triggers: "add endpoint", "new API route", "create endpoint", "API for", "REST endpoint".
-  Designs the contract before any implementation. Nothing gets built until contract is approved.
+description: Design API endpoint contracts before any implementation — nothing gets built until the contract is approved.
 ---
 
 # API Design

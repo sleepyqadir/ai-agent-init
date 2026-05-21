@@ -1,9 +1,6 @@
 ---
 name: database-migrate
-description: |
-  Use when creating or applying database migrations.
-  Triggers: "create migration", "add column", "schema change", "database migration", "run migration".
-  Validates safety before running. Generates rollback SQL. Blocks dangerous ops without confirmation.
+description: Create and safely apply database migrations with rollback SQL generated before every run.
 ---
 
 # Database Migration

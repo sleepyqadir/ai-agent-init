@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Use when implementing features or fixing bugs with test-driven development. Triggers: "TDD", "test first", "write tests first", "red green refactor", "test-driven". The failing test must exist before production code. No exceptions.
+description: Implement features or bug fixes using test-driven development — failing test must exist before production code.
 ---
 
 # Test-Driven Development
