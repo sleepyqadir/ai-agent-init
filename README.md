@@ -22,18 +22,11 @@ A production-grade AI development setup for both **Claude Code** and **Cursor** 
 ### 1. Install (one-time)
 
 ```bash
-git clone git@github.com:ahsanahmed321/ai-agent-init.git ~/.ai-agent-init
+git clone git@github.com:ahsanahmed321/ai-agent-init.git ~/ai-agent-init
+~/ai-agent-init/install.sh
 ```
 
-Add the alias:
-
-```bash
-# zsh
-echo 'alias aiagent-init="~/.ai-agent-init/bootstrap.sh"' >> ~/.zshrc && source ~/.zshrc
-
-# bash
-echo 'alias aiagent-init="~/.ai-agent-init/bootstrap.sh"' >> ~/.bashrc && source ~/.bashrc
-```
+Then open a **new terminal** (or run `source ~/.zshrc`) — the `aiagent-init` command will be available.
 
 ### 2. Run on any project
 
