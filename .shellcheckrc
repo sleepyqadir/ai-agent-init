@@ -1,0 +1,15 @@
+# ShellCheck configuration
+# https://www.shellcheck.net/wiki/
+
+# Target bash (not sh) since scripts use bash-specific features
+shell=bash
+
+# SC2034: variable appears unused — false positive for exported/platform vars
+disable=SC2034
+
+# SC2086: double quote to prevent globbing — disable for cases where word
+#         splitting is intentional (e.g. iterating space-separated strings)
+# Leave enabled; address per-line with # shellcheck disable=SC2086 if needed
+
+# SC1091: not following sourced files
+disable=SC1091

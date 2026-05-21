@@ -3,7 +3,8 @@
 Security Guard Hook (preToolUse: Write)
 Scans file content for dangerous patterns before allowing writes.
 Blocks on first new occurrence per file per session (exit code 2).
-Warns on subsequent occurrences (exit code 0 with message).
+Subsequent occurrences in the same session for the same file/pattern are silently
+allowed to avoid repeated blocking on incremental edits.
 """
 
 import json
@@ -117,6 +118,45 @@ PATTERNS = [
         "regex": r"algorithm['\"]?\s*[=:]\s*['\"]none['\"]",
         "extensions": ["js", "ts", "jsx", "tsx", "py"],
         "message": "JWT algorithm 'none' disables signature verification. Always use RS256 or HS256 with a strong secret.",
+    },
+    # AWS credentials
+    {
+        "id": "aws_access_key",
+        "name": "Hardcoded AWS Access Key ID",
+        "regex": r"AKIA[0-9A-Z]{16}",
+        "extensions": ["js", "ts", "jsx", "tsx", "py", "json", "yaml", "yml", "env", "sh", "bash", "tf"],
+        "message": "AWS Access Key ID detected in source code. Revoke immediately at https://console.aws.amazon.com/iam/ and use environment variables.",
+    },
+    {
+        "id": "aws_secret_key",
+        "name": "Hardcoded AWS Secret Access Key",
+        "regex": r"(?i)aws_secret_access_key\s*[=:]\s*['\"]?[A-Za-z0-9/+=]{40}['\"]?",
+        "extensions": ["js", "ts", "jsx", "tsx", "py", "json", "yaml", "yml", "env", "sh", "tf"],
+        "message": "AWS Secret Access Key detected. Revoke immediately and store in environment variables or AWS Secrets Manager.",
+    },
+    # Private keys
+    {
+        "id": "private_key_pem",
+        "name": "Private Key in Source Code",
+        "regex": r"-----BEGIN\s+(RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----",
+        "extensions": ["js", "ts", "jsx", "tsx", "py", "json", "yaml", "yml", "sh", "pem", "key", "txt"],
+        "message": "Private key detected in source code. Never commit private keys. Store in a secrets manager or environment variable.",
+    },
+    # GCP / generic service account credentials
+    {
+        "id": "gcp_service_account",
+        "name": "GCP Service Account Key",
+        "regex": r'"private_key_id"\s*:\s*"[a-f0-9]{40}"',
+        "extensions": ["json"],
+        "message": "GCP service account key detected. Never commit credentials. Use Workload Identity or environment-based auth.",
+    },
+    # Generic bearer/auth tokens
+    {
+        "id": "bearer_token_hardcoded",
+        "name": "Hardcoded Bearer Token",
+        "regex": r"(?i)bearer\s+[a-zA-Z0-9\-_\.]{20,}",
+        "extensions": ["js", "ts", "jsx", "tsx", "py", "sh"],
+        "message": "Bearer token appears hardcoded. Use environment variables or a secrets manager.",
     },
 ]
 

@@ -65,7 +65,9 @@ Store all answers before proceeding to generation.
 - TypeScript/Node → `.cursor/skills/project-setup/profiles/typescript-node.md`
 - Next.js/React → `.cursor/skills/project-setup/profiles/nextjs.md`
 - Python/FastAPI → `.cursor/skills/project-setup/profiles/python-fastapi.md`
+- Python/Django → `.cursor/skills/project-setup/profiles/django.md`
 - Go → `.cursor/skills/project-setup/profiles/go.md`
+- Rust → `.cursor/skills/project-setup/profiles/rust.md`
 - AI project → `.cursor/skills/project-setup/profiles/ai-project.md`
 - Other → `.cursor/skills/project-setup/profiles/generic.md`
 
@@ -137,7 +139,20 @@ cat pyproject.toml 2>/dev/null | head -20
 cat go.mod 2>/dev/null | head -20
 cat Cargo.toml 2>/dev/null | head -20
 find . -maxdepth 2 -name "package.json" -o -name "requirements.txt" -o -name "pyproject.toml" -o -name "go.mod" -o -name "Cargo.toml" 2>/dev/null | grep -v node_modules | head -10
+# Detect Django vs FastAPI (both are Python)
+grep -r "django" requirements.txt pyproject.toml 2>/dev/null | head -3
+grep -r "fastapi" requirements.txt pyproject.toml 2>/dev/null | head -3
 ```
+
+Stack detection rules:
+- `Cargo.toml` present → Rust profile
+- `requirements.txt` or `pyproject.toml` with `django` → Django profile
+- `requirements.txt` or `pyproject.toml` with `fastapi` → Python/FastAPI profile
+- `go.mod` present → Go profile
+- `package.json` with Next.js dependency → Next.js profile
+- `package.json` without Next.js → TypeScript/Node profile
+- LLM/AI packages detected → AI project profile (can combine with above)
+- None of the above → Generic profile
 
 **Step 2 — Understand architecture:**
 ```bash

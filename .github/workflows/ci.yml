@@ -1,0 +1,151 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ShellCheck
+        run: sudo apt-get install -y shellcheck
+
+      - name: Lint bootstrap.sh
+        run: shellcheck bootstrap.sh
+
+      - name: Lint install.sh
+        run: shellcheck install.sh
+
+      - name: Lint hook shell scripts
+        run: |
+          find scaffold -name "*.sh" -exec shellcheck {} \;
+
+  scaffold-integrity:
+    name: Scaffold Integrity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check required Cursor scaffold files exist
+        run: |
+          required_files=(
+            "scaffold/cursor/.cursor/hooks.json"
+            "scaffold/cursor/.cursor/hooks/security-guard.py"
+            "scaffold/cursor/.cursor/hooks/bash-guard.py"
+            "scaffold/cursor/.cursor/hooks/dependency-audit.sh"
+            "scaffold/cursor/.cursor/hooks/session-start.sh"
+            "scaffold/cursor/.cursor/hooks/session-close.py"
+            "scaffold/cursor/.cursor/skills/project-setup/SKILL.md"
+            "scaffold/cursor/.cursor/skills/project-setup/profiles/rust.md"
+            "scaffold/cursor/.cursor/skills/project-setup/profiles/django.md"
+            "scaffold/cursor/.cursor/skills/project-setup/profiles/go.md"
+            "scaffold/cursor/.cursor/skills/project-setup/profiles/typescript-node.md"
+            "scaffold/cursor/.cursor/skills/project-setup/profiles/python-fastapi.md"
+            "scaffold/cursor/.cursor/mcp.json.example"
+          )
+          for f in "${required_files[@]}"; do
+            if [ ! -f "$f" ]; then
+              echo "MISSING: $f"
+              exit 1
+            fi
+          done
+          echo "All required Cursor scaffold files present."
+
+      - name: Check required Claude scaffold files exist
+        run: |
+          required_files=(
+            "scaffold/claude/.claude/settings.json"
+            "scaffold/claude/.claude/hooks/security-guard.py"
+            "scaffold/claude/.claude/hooks/bash-guard.py"
+            "scaffold/claude/.claude/hooks/dependency-audit.sh"
+            "scaffold/claude/.claude/hooks/session-start.sh"
+            "scaffold/claude/.claude/hooks/session-close.py"
+            "scaffold/claude/.claude/skills/project-setup/SKILL.md"
+            "scaffold/claude/.claude/skills/project-setup/profiles/rust.md"
+            "scaffold/claude/.claude/skills/project-setup/profiles/django.md"
+          )
+          for f in "${required_files[@]}"; do
+            if [ ! -f "$f" ]; then
+              echo "MISSING: $f"
+              exit 1
+            fi
+          done
+          echo "All required Claude scaffold files present."
+
+      - name: Check hook scripts are executable
+        run: |
+          find scaffold -name "*.py" -o -name "*.sh" | while read -r hook; do
+            if [ ! -x "$hook" ]; then
+              echo "NOT EXECUTABLE: $hook"
+              exit 1
+            fi
+          done
+          echo "All hook scripts are executable."
+
+      - name: Check no Bash 4+ syntax in scripts
+        run: |
+          # ${var,,} and ${var^^} are Bash 4+ only (fails on macOS default bash 3.2)
+          if grep -rn '\${[^}]*,,}' bootstrap.sh install.sh scaffold/; then
+            echo "Bash 4+ lowercase syntax found — breaks macOS default bash"
+            exit 1
+          fi
+          if grep -rn '\${[^}]*\^\^}' bootstrap.sh install.sh scaffold/; then
+            echo "Bash 4+ uppercase syntax found — breaks macOS default bash"
+            exit 1
+          fi
+          echo "No Bash 4+ syntax detected."
+
+  bats-macos:
+    name: Bats Tests (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install bats-core
+        run: brew install bats-core
+
+      - name: Run bootstrap tests
+        run: bats test/test_bootstrap.bats
+
+      - name: Run install tests
+        run: bats test/test_install.bats
+
+  bats-ubuntu:
+    name: Bats Tests (Ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install bats-core
+        run: |
+          npm install -g bats
+          bats --version
+
+      - name: Run bootstrap tests
+        run: bats test/test_bootstrap.bats
+
+      - name: Run install tests
+        run: bats test/test_install.bats
+
+  python-hooks:
+    name: Python Hook Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Python hook syntax
+        run: |
+          python3 -m py_compile scaffold/cursor/.cursor/hooks/security-guard.py
+          python3 -m py_compile scaffold/cursor/.cursor/hooks/bash-guard.py
+          python3 -m py_compile scaffold/cursor/.cursor/hooks/session-close.py
+          python3 -m py_compile scaffold/cursor/.cursor/hooks/session-start.sh || true
+          python3 -m py_compile scaffold/claude/.claude/hooks/security-guard.py
+          python3 -m py_compile scaffold/claude/.claude/hooks/bash-guard.py
+          python3 -m py_compile scaffold/claude/.claude/hooks/session-close.py
+          echo "All Python hooks are syntactically valid."

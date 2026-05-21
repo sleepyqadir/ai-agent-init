@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """
-Session Close Hook (Stop event)
+Session Close Hook (stop event)
 Checks for loose ends and writes a 3-line session summary.
 Does not block (always exits 0) — prompts and logs only.
 """
 
-import json
 import os
 import subprocess
 import sys
@@ -27,25 +26,50 @@ def main():
     os.chdir(project_dir)
 
     warnings = []
+    artifact_hits = []
 
-    # Check for uncommitted changes
     git_status = run("git status --short 2>/dev/null")
     if git_status:
         file_count = len([l for l in git_status.split("\n") if l.strip()])
         warnings.append(f"{file_count} uncommitted file(s)")
 
-    # Check for unpushed commits
     unpushed = run("git log @{u}..HEAD --oneline 2>/dev/null")
     if unpushed:
         commit_count = len([l for l in unpushed.split("\n") if l.strip()])
         warnings.append(f"{commit_count} unpushed commit(s)")
 
-    # Print warnings if any
+    # Check for debug artifacts in recently changed files
+    changed_files = run("git diff --name-only HEAD 2>/dev/null")
+    if changed_files:
+        artifact_hits = []
+        for fname in changed_files.split("\n"):
+            fname = fname.strip()
+            if not fname or not os.path.isfile(fname):
+                continue
+            try:
+                with open(fname, encoding="utf-8", errors="ignore") as fh:
+                    for i, line in enumerate(fh, 1):
+                        stripped = line.strip()
+                        if any(tag in stripped for tag in ("TODO", "FIXME", "HACK", "XXX", "console.log", "print(", "debugger")):
+                            artifact_hits.append(f"  {fname}:{i}: {stripped[:80]}")
+                            if len(artifact_hits) >= 5:
+                                break
+            except OSError:
+                continue
+        if artifact_hits:
+            warnings.append(f"{len(artifact_hits)} debug artifact(s) in changed files")
+
     if warnings:
         print(f"\nBefore closing: {', '.join(warnings)}.", file=sys.stderr)
-        print("Consider: /commit to save your work, or /ship to push.", file=sys.stderr)
+        if artifact_hits:
+            print("Debug artifacts found (first 5):", file=sys.stderr)
+            for hit in artifact_hits[:5]:
+                print(hit, file=sys.stderr)
+        print(
+            "Consider using the commit or ship skills to save your work.",
+            file=sys.stderr,
+        )
 
-    # Write session summary
     notes_path = os.path.join(project_dir, ".claude", "session-notes.md")
     os.makedirs(os.path.dirname(notes_path), exist_ok=True)
 
@@ -62,7 +86,6 @@ Uncommitted changes: {git_status if git_status else 'none'}
 ---
 """
 
-    # Prepend to session notes
     existing = ""
     if os.path.exists(notes_path):
         with open(notes_path) as f:

@@ -5,7 +5,6 @@ Checks for loose ends and writes a 3-line session summary.
 Does not block (always exits 0) — prompts and logs only.
 """
 
-import json
 import os
 import subprocess
 import sys
@@ -27,6 +26,7 @@ def main():
     os.chdir(project_dir)
 
     warnings = []
+    artifact_hits = []
 
     git_status = run("git status --short 2>/dev/null")
     if git_status:
@@ -38,8 +38,33 @@ def main():
         commit_count = len([l for l in unpushed.split("\n") if l.strip()])
         warnings.append(f"{commit_count} unpushed commit(s)")
 
+    # Check for debug artifacts in recently changed files
+    changed_files = run("git diff --name-only HEAD 2>/dev/null")
+    if changed_files:
+        artifact_hits = []
+        for fname in changed_files.split("\n"):
+            fname = fname.strip()
+            if not fname or not os.path.isfile(fname):
+                continue
+            try:
+                with open(fname, encoding="utf-8", errors="ignore") as fh:
+                    for i, line in enumerate(fh, 1):
+                        stripped = line.strip()
+                        if any(tag in stripped for tag in ("TODO", "FIXME", "HACK", "XXX", "console.log", "print(", "debugger")):
+                            artifact_hits.append(f"  {fname}:{i}: {stripped[:80]}")
+                            if len(artifact_hits) >= 5:
+                                break
+            except OSError:
+                continue
+        if artifact_hits:
+            warnings.append(f"{len(artifact_hits)} debug artifact(s) in changed files")
+
     if warnings:
         print(f"\nBefore closing: {', '.join(warnings)}.", file=sys.stderr)
+        if artifact_hits:
+            print("Debug artifacts found (first 5):", file=sys.stderr)
+            for hit in artifact_hits[:5]:
+                print(hit, file=sys.stderr)
         print(
             "Consider using the commit or ship skills to save your work.",
             file=sys.stderr,

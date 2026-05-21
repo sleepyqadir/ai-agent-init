@@ -122,12 +122,23 @@ except:
   fi
 fi
 
-# Python pip
-if [ -f "requirements.txt" ] || [ -f "Pipfile" ]; then
+# Python pip-audit
+if [ -f "requirements.txt" ] || [ -f "Pipfile" ] || [ -f "pyproject.toml" ]; then
   if command -v pip-audit &>/dev/null; then
     echo "Running pip-audit..." >&2
     PIP_OUTPUT=$(pip-audit --output=json 2>/dev/null || true)
-    PIP_CRITICAL=$(echo "$PIP_OUTPUT" | python3 -c "
+    PIP_VULN_COUNT=$(echo "$PIP_OUTPUT" | python3 -c "
+import json, sys
+try:
+    data = json.load(sys.stdin)
+    vulns = [v for dep in data.get('dependencies', []) for v in dep.get('vulns', [])]
+    critical = [v for v in vulns if v.get('fix_versions')]
+    print(len(critical))
+except:
+    print(0)
+" 2>/dev/null || echo "0")
+
+    PIP_TOTAL=$(echo "$PIP_OUTPUT" | python3 -c "
 import json, sys
 try:
     data = json.load(sys.stdin)
@@ -137,9 +148,51 @@ except:
     print(0)
 " 2>/dev/null || echo "0")
 
-    if [ "$PIP_CRITICAL" -gt 0 ] 2>/dev/null; then
-      echo "WARNING: $PIP_CRITICAL Python vulnerabilities found. Run 'pip-audit' for details." >&2
+    if [ "$PIP_TOTAL" -gt 0 ] 2>/dev/null; then
+      echo "CRITICAL: $PIP_TOTAL Python vulnerabilities found. Run 'pip-audit' for details." >&2
+      exit 2
     fi
+  else
+    echo "NOTE: pip-audit not installed. Run 'pip install pip-audit' to enable Python dependency scanning." >&2
+  fi
+fi
+
+# Rust cargo audit
+if [ -f "Cargo.toml" ] || [ -f "Cargo.lock" ]; then
+  if command -v cargo-audit &>/dev/null || cargo audit --version &>/dev/null 2>&1; then
+    echo "Running cargo audit..." >&2
+    CARGO_OUTPUT=$(cargo audit --json 2>/dev/null || true)
+    CARGO_VULN=$(echo "$CARGO_OUTPUT" | python3 -c "
+import json, sys
+try:
+    data = json.load(sys.stdin)
+    count = data.get('vulnerabilities', {}).get('count', 0)
+    print(count)
+except:
+    print(0)
+" 2>/dev/null || echo "0")
+
+    if [ "$CARGO_VULN" -gt 0 ] 2>/dev/null; then
+      echo "CRITICAL: $CARGO_VULN Rust vulnerabilities found. Run 'cargo audit' for details." >&2
+      exit 2
+    fi
+  else
+    echo "NOTE: cargo-audit not installed. Run 'cargo install cargo-audit' to enable Rust dependency scanning." >&2
+  fi
+fi
+
+# Go govulncheck
+if [ -f "go.mod" ]; then
+  if command -v govulncheck &>/dev/null; then
+    echo "Running govulncheck..." >&2
+    GOvuln_OUTPUT=$(govulncheck ./... 2>&1 || true)
+    if echo "$GOvuln_OUTPUT" | grep -q "Vulnerability #"; then
+      GOvuln_COUNT=$(echo "$GOVOLN_OUTPUT" | grep -c "Vulnerability #" 2>/dev/null || echo "1")
+      echo "CRITICAL: Go vulnerabilities found. Run 'govulncheck ./...' for details." >&2
+      exit 2
+    fi
+  else
+    echo "NOTE: govulncheck not installed. Run 'go install golang.org/x/vuln/cmd/govulncheck@latest' to enable Go vulnerability scanning." >&2
   fi
 fi
 
