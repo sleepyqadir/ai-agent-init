@@ -28,6 +28,11 @@
       {
         "command": "python3 .cursor/hooks/session-close.py"
       }
+    ],
+    "afterAgentResponse": [
+      {
+        "command": "python3 .cursor/hooks/track-tokens.py"
+      }
     ]
   }
 }
