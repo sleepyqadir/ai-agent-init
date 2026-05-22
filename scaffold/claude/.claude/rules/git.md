@@ -3,7 +3,7 @@
 - Conventional commits: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`. Imperative mood. Max 72 chars.
 - Breaking changes: append `!` after type/scope (`feat(api)!:`) and include `BREAKING CHANGE:` footer with migration path.
 - One logical change per commit. Refactors and features in separate commits. Never mix formatting with logic changes.
-- Commit body is required for changes touching 3+ files or 50+ lines. The body explains WHY, not what — the diff shows what changed.
+- Commit body: add only when the subject alone doesn't explain the motivation. Max 2 sentences — never bullet lists, never file-by-file changelogs. Explain WHY, not what — the diff shows what changed.
 - Commit message must accurately reflect the actual diff. Never use superlatives ("comprehensive", "robust", "complete overhaul").
 - Branch naming: `feat/short-description`, `fix/issue-id`, `refactor/area`.
 - Never commit directly to main/master. Always through a branch and PR.

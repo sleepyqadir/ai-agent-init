@@ -23,7 +23,11 @@ Run silently before committing. Surface output only on failure:
    - Format: `type(scope): description`
    - Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
    - Imperative mood. Max 72 chars. No trailing period.
-   - Add a body paragraph only when the *why* isn't obvious from the subject
+   - Body rules:
+     - Add only when the motivation isn't obvious from the subject
+     - Max 2 sentences. Never bullet points. Never list files or per-file changes.
+     - Explain WHY the change was made, not WHAT changed — the diff shows what.
+     - If you can't explain the why in 2 sentences, the commit is too large — suggest splitting.
 5. Show a one-line status + the commit message, then ask to confirm:
    ```
    N files staged. No artifacts found.
@@ -44,3 +48,20 @@ Run silently before committing. Surface output only on failure:
 - Show the commit message in a code block for easy copy
 - After committing: one line only — `Committed <hash> — <subject>`
 - Issues (artifacts, auth failure): state the problem, stop — no hedging
+
+## Anti-patterns
+
+BAD — bulleted changelog in body:
+```
+feat(auth): add login endpoint
+- Add POST /auth/login with JWT
+- Add bcrypt password hashing
+- Register AuthService in AppModule
+```
+
+GOOD — concise why:
+```
+feat(auth): add login endpoint
+
+Enable JWT-based authentication for the mobile app launch.
+```
