@@ -66,11 +66,11 @@ Installs `.claude/` with:
 
 | Layer | Count | Details |
 |---|---|---|
-| Rules | 9 | Always-loaded, ~550 tokens |
+| Rules | 10 | Always-loaded, ~550 tokens |
 | Agents | 11 | Specialized sub-agents with tool/model constraints |
-| Skills | 14 | On-demand multi-phase workflows |
+| Skills | 16 | On-demand multi-phase workflows |
 | Commands | 5 | `/commit`, `/pr`, `/review`, `/plan`, `/ship` |
-| Hooks | 5 | Security guard, bash guard, dependency audit, session start/close |
+| Hooks | 7 | Security guard, bash guard, dependency audit, session start/close, pre-stop verify, token tracking |
 
 ### Cursor (`--cursor`)
 
@@ -78,9 +78,9 @@ Installs `.cursor/` with:
 
 | Layer | Count | Details |
 |---|---|---|
-| Rules | 9 | `.mdc` files, always-loaded or file-scoped |
-| Skills | 19 | 14 workflows + 5 converted commands |
-| Hooks | 5 | Adapted for Cursor's event model |
+| Rules | 10 | `.mdc` files, always-loaded or file-scoped |
+| Skills | 22 | 17 workflows + 5 converted commands |
+| Hooks | 8 | Adapted for Cursor's event model (includes lint-check) |
 
 Claude's 11 agents map to Cursor's `generalPurpose`/`explore`/`shell` Task subagents, guided by the `task-delegation` rule and skills.
 
@@ -125,6 +125,7 @@ Claude's 11 agents map to Cursor's `generalPurpose`/`explore`/`shell` Task subag
 | `project-setup` | Setup new or analyze existing | `/project-setup` | `project-setup` skill |
 | `feature-dev` | 7-phase feature development | `/feature-dev` | `feature-dev` skill |
 | `api-design` | Contract-first API design | `/api-design` | `api-design` skill |
+| `api-curl` | Generate ready-to-run curl commands | `/api-curl` | `api-curl` skill |
 | `tdd` | Red-green-refactor TDD cycle | `/tdd` | `tdd` skill |
 | `database-migrate` | Safe migration with rollback SQL | `/database-migrate` | `database-migrate` skill |
 | `ai-agent-build` | Build AI agents with eval-first | `/ai-agent-build` | `ai-agent-build` skill |
@@ -134,6 +135,7 @@ Claude's 11 agents map to Cursor's `generalPurpose`/`explore`/`shell` Task subag
 | `e2e-loop` | Exploratory E2E testing loop | `/e2e-loop` | `e2e-loop` skill |
 | `10-10-frontend` | Iterative UI polish via screenshots | `/10-10-frontend` | `10-10-frontend` skill |
 | `ci-setup` | GitHub Actions workflow generation | `/ci-setup` | `ci-setup` skill |
+| `daily-update` | Daily standup summary from git + sessions | `/daily-update` | `daily-update` skill |
 | `new-skill` | Extend the system with custom skills | `/new-skill` | `new-skill` skill |
 | `new-agent` / `new-rule` | Add agents (Claude) or rules (Cursor) | `/new-agent` | `new-rule` skill |
 | `commit` | Conventional commit workflow | `/commit` command | `commit` skill |
@@ -141,6 +143,7 @@ Claude's 11 agents map to Cursor's `generalPurpose`/`explore`/`shell` Task subag
 | `review` | Parallel code + security review | `/review` command | `review` skill |
 | `plan` | Implementation planning | `/plan` command | `plan` skill |
 | `ship` | Verify → review → commit → PR | `/ship` command | `ship` skill |
+| `verify` | Comprehensive verification checklist | — | `verify` skill |
 
 ### Hooks (automated guards)
 
@@ -150,7 +153,10 @@ Claude's 11 agents map to Cursor's `generalPurpose`/`explore`/`shell` Task subag
 | `bash-guard.py` | Before shell command | Blocks 14 dangerous patterns | `PreToolUse: Bash` | `beforeShellExecution` |
 | `dependency-audit.sh` | After manifest change | CVE check, blocks on CRITICAL | `PostToolUse: Write` | `postToolUse: Write` |
 | `session-start.sh` | Session open | Injects git context | `SessionStart` | `sessionStart` |
-| `session-close.py` | Session end | Warns on loose ends, writes notes | `Stop` | `stop` |
+| `session-close.py` | Session end | Warns on loose ends, writes notes, logs to daily-updates.jsonl | `Stop` | `stop` |
+| `pre-stop-verify.py` | Before stop | Warns if uncommitted work unverified | `PreToolUse: Stop` | `preStop` |
+| `track-tokens.py` | After tool use | Logs token usage to token-usage.jsonl | `PostToolUse` | `postToolUse` |
+| `lint-check.sh` | After file edit | Reminds to run linter | — | `postToolUse: Write` |
 
 ---
 
@@ -175,6 +181,62 @@ The `project-setup` skill auto-selects a profile based on your stack:
 - **Go** — error handling, context everywhere, golangci-lint, govulncheck
 - **AI Project** — model config, prompt versioning, eval framework, cost tracking
 - **Generic** — universal conventions for any stack
+
+---
+
+## Daily Update Automation
+
+Automatically sends a Slack DM with a polished standup "Done" summary at a scheduled time each day.
+
+### Setup
+
+```bash
+aiagent-init --setup-daily-update
+```
+
+Interactive prompts collect: Slack bot token, your Slack user ID, LLM provider (OpenAI or Anthropic), API key, and preferred send time.
+
+### How it works
+
+1. **Per-session capture** — The `session-close.py` hook appends a structured entry to `{config_dir}/daily-updates.jsonl` at the end of every agent session
+2. **Daily send** — At your configured time, `daily-update-send.py` collects entries from the last 24h, calls the configured LLM to synthesize concise bullets, and posts a Slack DM
+3. **Auto-rotation** — After a successful send, entries older than 24h are pruned from the JSONL files
+
+### Commands
+
+```bash
+aiagent-init --setup-daily-update       # Interactive setup
+aiagent-init --daily-update             # Send now (test or manual trigger)
+aiagent-init --daily-update --dry-run   # Preview without sending
+aiagent-init --daily-update-time 09:00  # Change the scheduled send time
+aiagent-init --disable-daily-update     # Unload schedule, set enabled: false
+```
+
+### Schedule
+
+- **macOS**: Uses a launchd plist (`~/Library/LaunchAgents/com.aiagent-init.daily-update.plist`)
+- **Linux**: Prints a crontab entry for manual installation
+
+### Config
+
+Stored at `~/.aiagent-init/config.json` (permissions: `0600`):
+
+```json
+{
+  "daily_update": {
+    "enabled": true,
+    "slack_bot_token": "xoxb-...",
+    "slack_user_id": "U...",
+    "llm_provider": "openai",
+    "llm_api_key": "sk-...",
+    "llm_model": "gpt-4o-mini",
+    "send_time": "18:00",
+    "projects": ["/path/to/project-a"]
+  }
+}
+```
+
+The `projects` array is auto-populated when `aiagent-init --cursor .` or `--claude .` is run.
 
 ---
 

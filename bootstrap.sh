@@ -49,6 +49,7 @@ Options:
   --verify                Validate an existing installation
   --setup-daily-update    Configure automated daily standup Slack DM
   --daily-update          Send daily update now (requires setup)
+  --daily-update-time HH:MM  Change the scheduled send time
   --disable-daily-update  Disable the scheduled daily update
   --help                  Show this help
 
@@ -71,6 +72,7 @@ VERIFY=false
 SETUP_DAILY_UPDATE=false
 DAILY_UPDATE=false
 DISABLE_DAILY_UPDATE=false
+DAILY_UPDATE_TIME=""
 TARGET=""
 
 while [[ $# -gt 0 ]]; do
@@ -84,13 +86,14 @@ while [[ $# -gt 0 ]]; do
     --setup-daily-update)   SETUP_DAILY_UPDATE=true; shift ;;
     --daily-update)         DAILY_UPDATE=true;        shift ;;
     --disable-daily-update) DISABLE_DAILY_UPDATE=true; shift ;;
+    --daily-update-time)    DAILY_UPDATE_TIME="$2"; shift 2 ;;
     --help|-h) usage; exit 0 ;;
     -*)        err "Unknown flag: $1"; echo ""; usage; exit 1 ;;
     *)         TARGET="$1"; shift ;;
   esac
 done
 
-if [ -z "$PLATFORM" ] && ! $VERIFY && ! $SETUP_DAILY_UPDATE && ! $DAILY_UPDATE && ! $DISABLE_DAILY_UPDATE; then
+if [ -z "$PLATFORM" ] && ! $VERIFY && ! $SETUP_DAILY_UPDATE && ! $DAILY_UPDATE && ! $DISABLE_DAILY_UPDATE && [ -z "$DAILY_UPDATE_TIME" ]; then
   err "platform flag required (--claude, --cursor, or --both)"
   echo ""
   usage
@@ -266,14 +269,17 @@ DAILY_UPDATE_CONFIG="$HOME/.aiagent-init/config.json"
 DAILY_UPDATE_SCRIPT="$SCRIPT_DIR/daily-update-send.py"
 DAILY_UPDATE_PLIST="$HOME/Library/LaunchAgents/com.aiagent-init.daily-update.plist"
 
-# read_secret <prompt>: read without echo, return via REPLY
+_restore_echo() { stty echo 2>/dev/null || true; }
+
 read_secret() {
   local prompt="$1"
   if [ -t 0 ]; then
     printf "%s" "$prompt"
+    trap '_restore_echo' INT TERM
     stty -echo 2>/dev/null || true
     IFS= read -r REPLY
     stty echo 2>/dev/null || true
+    trap - INT TERM
     printf "\n"
   else
     IFS= read -r REPLY
@@ -360,7 +366,7 @@ if $SETUP_DAILY_UPDATE; then
   if [ "$LLM_PROVIDER" = "openai" ]; then
     DEFAULT_MODEL="gpt-4o-mini"
   else
-    DEFAULT_MODEL="claude-3-haiku-20240307"
+    DEFAULT_MODEL="claude-3-5-haiku-20241022"
   fi
 
   # LLM API key
@@ -402,8 +408,8 @@ if $SETUP_DAILY_UPDATE; then
     exit 1
   fi
 
-  # Write config
   mkdir -p "$(dirname "$DAILY_UPDATE_CONFIG")"
+  chmod 700 "$(dirname "$DAILY_UPDATE_CONFIG")"
   # Merge with existing config if present
   EXISTING_PROJECTS="[]"
   if [ -f "$DAILY_UPDATE_CONFIG" ]; then
@@ -417,11 +423,19 @@ except Exception:
 " 2>/dev/null || echo "[]")"
   fi
 
-  python3 - <<PYEOF
+  _DU_CONFIG_PATH="$DAILY_UPDATE_CONFIG" \
+  _DU_SLACK_TOKEN="$SLACK_TOKEN" \
+  _DU_SLACK_USER_ID="$SLACK_USER_ID" \
+  _DU_LLM_PROVIDER="$LLM_PROVIDER" \
+  _DU_LLM_API_KEY="$LLM_API_KEY" \
+  _DU_LLM_MODEL="$LLM_MODEL" \
+  _DU_SEND_TIME="$SEND_TIME" \
+  _DU_EXISTING_PROJECTS="$EXISTING_PROJECTS" \
+  python3 - <<'PYEOF'
 import json, os, stat
 
-config_path = "$DAILY_UPDATE_CONFIG"
-existing_projects = $EXISTING_PROJECTS
+config_path = os.environ["_DU_CONFIG_PATH"]
+existing_projects = json.loads(os.environ.get("_DU_EXISTING_PROJECTS", "[]"))
 
 data = {}
 if os.path.exists(config_path):
@@ -433,12 +447,12 @@ if os.path.exists(config_path):
 
 data["daily_update"] = {
     "enabled": True,
-    "slack_bot_token": "$SLACK_TOKEN",
-    "slack_user_id": "$SLACK_USER_ID",
-    "llm_provider": "$LLM_PROVIDER",
-    "llm_api_key": "$LLM_API_KEY",
-    "llm_model": "$LLM_MODEL",
-    "send_time": "$SEND_TIME",
+    "slack_bot_token": os.environ["_DU_SLACK_TOKEN"],
+    "slack_user_id": os.environ["_DU_SLACK_USER_ID"],
+    "llm_provider": os.environ["_DU_LLM_PROVIDER"],
+    "llm_api_key": os.environ["_DU_LLM_API_KEY"],
+    "llm_model": os.environ["_DU_LLM_MODEL"],
+    "send_time": os.environ["_DU_SEND_TIME"],
     "projects": existing_projects,
 }
 
@@ -482,6 +496,10 @@ PYEOF
 </dict>
 </plist>
 PLIST
+    # Pre-create log file with restricted permissions
+    touch "$HOME/.aiagent-init/daily-update.log"
+    chmod 600 "$HOME/.aiagent-init/daily-update.log"
+
     launchctl unload "$DAILY_UPDATE_PLIST" 2>/dev/null || true
     launchctl load "$DAILY_UPDATE_PLIST" 2>/dev/null && \
       success "Installed launchd plist — runs daily at $SEND_TIME" || \
@@ -509,7 +527,11 @@ if $DAILY_UPDATE; then
     err "Is the aiagent-init repo intact?"
     exit 1
   fi
-  python3 "$DAILY_UPDATE_SCRIPT" "$@"
+  if $DRY_RUN; then
+    python3 "$DAILY_UPDATE_SCRIPT" --dry-run
+  else
+    python3 "$DAILY_UPDATE_SCRIPT"
+  fi
   exit $?
 fi
 
@@ -525,11 +547,11 @@ if $DISABLE_DAILY_UPDATE; then
     success "Unloaded launchd plist"
   fi
 
-  # Set enabled=false in config
-  python3 - <<PYEOF
+  _DU_CONFIG_PATH="$DAILY_UPDATE_CONFIG" \
+  python3 - <<'PYEOF'
 import json, os, stat
 
-config_path = "$DAILY_UPDATE_CONFIG"
+config_path = os.environ["_DU_CONFIG_PATH"]
 try:
     with open(config_path) as f:
         data = json.load(f)
@@ -550,6 +572,81 @@ PYEOF
   success "Daily update disabled."
   echo "  Re-enable: aiagent-init --setup-daily-update"
   echo ""
+  exit 0
+fi
+
+# ── Change daily update time ──────────────────────────────────────────────────
+if [ -n "$DAILY_UPDATE_TIME" ]; then
+  if [ ! -f "$DAILY_UPDATE_CONFIG" ]; then
+    err "No config found. Run: aiagent-init --setup-daily-update first."
+    exit 1
+  fi
+
+  NEW_HOUR="$(printf '%s' "$DAILY_UPDATE_TIME" | cut -d: -f1)"
+  NEW_MINUTE="$(printf '%s' "$DAILY_UPDATE_TIME" | cut -d: -f2)"
+  if [ -z "$NEW_HOUR" ] || [ -z "$NEW_MINUTE" ]; then
+    err "Invalid time format. Use HH:MM (e.g., 18:00)."
+    exit 1
+  fi
+
+  _DU_CONFIG_PATH="$DAILY_UPDATE_CONFIG" \
+  _DU_SEND_TIME="$DAILY_UPDATE_TIME" \
+  python3 - <<'PYEOF'
+import json, os, stat
+
+config_path = os.environ["_DU_CONFIG_PATH"]
+try:
+    with open(config_path) as f:
+        data = json.load(f)
+except Exception:
+    data = {}
+
+if "daily_update" not in data:
+    data["daily_update"] = {}
+
+data["daily_update"]["send_time"] = os.environ["_DU_SEND_TIME"]
+
+with open(config_path, "w") as f:
+    json.dump(data, f, indent=2)
+os.chmod(config_path, stat.S_IRUSR | stat.S_IWUSR)
+PYEOF
+
+  # Re-install launchd plist with new time (macOS)
+  if [ "$(uname)" = "Darwin" ]; then
+    mkdir -p "$(dirname "$DAILY_UPDATE_PLIST")"
+    cat > "$DAILY_UPDATE_PLIST" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.aiagent-init.daily-update</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>$(command -v python3)</string>
+        <string>$DAILY_UPDATE_SCRIPT</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>$NEW_HOUR</integer>
+        <key>Minute</key>
+        <integer>$NEW_MINUTE</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>$HOME/.aiagent-init/daily-update.log</string>
+    <key>StandardErrorPath</key>
+    <string>$HOME/.aiagent-init/daily-update.log</string>
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>
+PLIST
+    launchctl unload "$DAILY_UPDATE_PLIST" 2>/dev/null || true
+    launchctl load "$DAILY_UPDATE_PLIST" 2>/dev/null || true
+  fi
+
+  success "Daily update time changed to $DAILY_UPDATE_TIME"
   exit 0
 fi
 
@@ -869,11 +966,13 @@ fi
 
 # ── Register project with daily-update config (if configured) ─────────────────
 if [ -f "$DAILY_UPDATE_CONFIG" ] && ! $DRY_RUN; then
-  python3 - <<PYEOF 2>/dev/null || true
+  _DU_CONFIG_PATH="$DAILY_UPDATE_CONFIG" \
+  _DU_PROJECT_DIR="$TARGET" \
+  python3 - <<'PYEOF' 2>/dev/null || true
 import json, os, stat
 
-config_path = "$DAILY_UPDATE_CONFIG"
-project_dir = "$TARGET"
+config_path = os.environ["_DU_CONFIG_PATH"]
+project_dir = os.environ["_DU_PROJECT_DIR"]
 try:
     with open(config_path) as f:
         data = json.load(f)

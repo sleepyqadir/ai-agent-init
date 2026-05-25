@@ -26,8 +26,8 @@ ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
 
 # Most cost-effective models per provider for this small summarisation task
 DEFAULT_MODELS = {
-    "openai": "gpt-4o-mini",           # $0.15 / $0.60 per M tokens
-    "anthropic": "claude-3-haiku-20240307",  # $0.25 / $1.25 per M tokens
+    "openai": "gpt-4o-mini",
+    "anthropic": "claude-3-5-haiku-20241022",
 }
 
 SYNTHESIS_PROMPT = """You are generating the "Done:" section of a daily standup update from structured session data.
@@ -86,6 +86,22 @@ def load_config():
 
 
 # ── Data collection ────────────────────────────────────────────────────────────
+def _parse_iso_timestamp(ts_str):
+    """Parse an ISO timestamp string, handling both tz-aware and naive formats."""
+    try:
+        ts = datetime.fromisoformat(ts_str)
+    except ValueError:
+        # Python <3.11 doesn't handle +00:00 in fromisoformat; strip it
+        if ts_str.endswith("+00:00") or ts_str.endswith("Z"):
+            cleaned = ts_str.replace("Z", "").replace("+00:00", "")
+            ts = datetime.fromisoformat(cleaned)
+            return ts.replace(tzinfo=timezone.utc)
+        return None
+    if ts.tzinfo is None:
+        ts = ts.replace(tzinfo=timezone.utc)
+    return ts
+
+
 def collect_entries(projects, hours=24):
     """Collect daily-update JSONL entries from all projects within the last N hours."""
     cutoff = datetime.now(tz=timezone.utc) - timedelta(hours=hours)
@@ -107,12 +123,8 @@ def collect_entries(projects, hours=24):
                             continue
                         try:
                             entry = json.loads(line)
-                            ts_str = entry.get("ts", "")
-                            try:
-                                ts = datetime.fromisoformat(ts_str)
-                                if ts.tzinfo is None:
-                                    ts = ts.replace(tzinfo=timezone.utc)
-                            except ValueError:
+                            ts = _parse_iso_timestamp(entry.get("ts", ""))
+                            if ts is None:
                                 continue
                             if ts >= cutoff:
                                 entries.append(entry)
@@ -279,6 +291,39 @@ def synthesize_with_llm(cfg, entries):
 
 
 # ── Slack ──────────────────────────────────────────────────────────────────────
+def rotate_jsonl_files(projects, hours=24):
+    """Remove entries older than the lookback window from all JSONL files."""
+    cutoff = datetime.now(tz=timezone.utc) - timedelta(hours=hours)
+    config_dirs = [".cursor", ".claude"]
+
+    for project in projects:
+        if not os.path.isdir(project):
+            continue
+        for config_dir in config_dirs:
+            jsonl_path = os.path.join(project, config_dir, "daily-updates.jsonl")
+            if not os.path.exists(jsonl_path):
+                continue
+            try:
+                kept = []
+                with open(jsonl_path, encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            entry = json.loads(line)
+                            ts = _parse_iso_timestamp(entry.get("ts", ""))
+                            if ts is not None and ts >= cutoff:
+                                kept.append(line)
+                        except json.JSONDecodeError:
+                            continue
+                with open(jsonl_path, "w", encoding="utf-8") as f:
+                    for line in kept:
+                        f.write(line + "\n")
+            except OSError:
+                continue
+
+
 def post_slack_dm(bot_token, user_id, message):
     """Post a direct message to a Slack user via chat.postMessage."""
     payload = {
@@ -363,8 +408,12 @@ def main():
     try:
         post_slack_dm(bot_token, user_id, message)
         print("Daily update sent successfully.")
+        rotate_jsonl_files(projects)
     except urllib.error.HTTPError as e:
         print(f"Error: Slack HTTP {e.code}", file=sys.stderr)
+        sys.exit(1)
+    except urllib.error.URLError as e:
+        print(f"Error: network issue — {e.reason}", file=sys.stderr)
         sys.exit(1)
     except RuntimeError as e:
         print(f"Error: {e}", file=sys.stderr)

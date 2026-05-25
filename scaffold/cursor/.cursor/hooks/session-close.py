@@ -11,7 +11,7 @@ import json
 import os
 import subprocess
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 def run(cmd):
@@ -224,12 +224,28 @@ Token usage (last): {token_str}
     sys.exit(0)
 
 
+def _read_last_logged_commits(jsonl_path):
+    """Read commit hashes from the most recent JSONL entry to avoid duplicates."""
+    if not os.path.exists(jsonl_path):
+        return set()
+    try:
+        with open(jsonl_path, encoding="utf-8") as f:
+            lines = [l.strip() for l in f if l.strip()]
+        if not lines:
+            return set()
+        last = json.loads(lines[-1])
+        return set(last.get("commits", []))
+    except Exception:
+        return set()
+
+
 def append_daily_update_entry(project_dir, config_dir, recent_commits_raw, changed_files_raw):
     """Append a structured accomplishment entry to daily-updates.jsonl."""
     try:
         jsonl_path = os.path.join(project_dir, config_dir, "daily-updates.jsonl")
 
-        # Extract commit hashes and messages from recent commits since last entry
+        previously_logged = _read_last_logged_commits(jsonl_path)
+
         commits = []
         commit_summary_parts = []
         if recent_commits_raw and recent_commits_raw != "No commits":
@@ -239,23 +255,22 @@ def append_daily_update_entry(project_dir, config_dir, recent_commits_raw, chang
                     continue
                 parts = line.split(" ", 1)
                 if len(parts) == 2:
-                    commits.append(parts[0])
-                    commit_summary_parts.append(parts[1])
+                    sha = parts[0]
+                    if sha not in previously_logged:
+                        commits.append(sha)
+                        commit_summary_parts.append(parts[1])
 
-        # Count changed files
         files_changed = 0
         if changed_files_raw:
             files_changed = len([f for f in changed_files_raw.splitlines() if f.strip()])
 
-        # Skip if nothing happened this session
         if not commits and files_changed == 0:
             return
 
-        # Build a plain-text summary from commit messages (LLM will polish at send time)
         summary = "; ".join(commit_summary_parts) if commit_summary_parts else f"{files_changed} file(s) modified"
 
         entry = {
-            "ts": datetime.now().isoformat(timespec="seconds"),
+            "ts": datetime.now(tz=timezone.utc).isoformat(timespec="seconds"),
             "project": project_dir,
             "summary": summary,
             "commits": commits,
@@ -266,7 +281,7 @@ def append_daily_update_entry(project_dir, config_dir, recent_commits_raw, chang
         with open(jsonl_path, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry) + "\n")
     except Exception:
-        pass  # Never block session close due to daily-update logging
+        pass
 
 
 if __name__ == "__main__":

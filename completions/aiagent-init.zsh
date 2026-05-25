@@ -26,6 +26,7 @@ _aiagent_init() {
     '--verify[Validate an existing installation]' \
     '--setup-daily-update[Configure automated daily standup Slack DM]' \
     '--daily-update[Send daily update now]' \
+    '--daily-update-time[Change the scheduled send time]:time: ' \
     '--disable-daily-update[Disable the scheduled daily update]' \
     '(-h --help)'{-h,--help}'[Show help]' \
     '::target directory:_files -/'
