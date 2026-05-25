@@ -71,9 +71,10 @@ Overall risk: LOW | MEDIUM | HIGH
 
 Stay in plan mode to iterate. If the user wants changes, revise the plan — do not exit plan mode until the user approves.
 
-## Step 5 — Execute
+## Step 5 — Save and Execute
 
 Once approved:
+- Suggest saving the plan to `.claude/plans/` for future context and team reference
 - Exit plan mode (`Shift+Tab` to return to normal mode)
 - Follow the plan step by step
 - If something unexpected comes up during implementation, re-enter plan mode to revise rather than improvising

@@ -20,9 +20,17 @@ Run before any git/gh operation. Surface output only on failure:
 1. Run `git log main..HEAD --oneline` to see branch commits
 2. Run `git diff main...HEAD --stat` for a change summary (not the full diff)
 3. Run the project's test command (check AGENTS.md) — if tests fail, stop and report
-4. Draft the PR:
+4. **Check for a project PR template** before drafting the body:
+   - Search for templates in this order (first match wins):
+     - `.github/PULL_REQUEST_TEMPLATE.md`
+     - `.github/pull_request_template.md`
+     - `.github/PULL_REQUEST_TEMPLATE/default.md`
+     - `docs/pull_request_template.md`
+   - If a template exists: use its structure as the PR body skeleton — fill in each section with content derived from the commits and diff. Preserve all headings, checkboxes, and placeholders from the template.
+   - If no project template exists: use the default format below.
+5. Draft the PR:
    - Title: conventional commits format, max 70 chars
-   - Body:
+   - Body (default format — only when no project template found):
      ```
      ## What
      [1-3 bullet points — what changed]
@@ -37,9 +45,9 @@ Run before any git/gh operation. Surface output only on failure:
      ## Notes
      [Breaking changes, follow-ups, caveats — omit section if none]
      ```
-5. Show the PR title + body only, ask to confirm
-6. On confirmation: `gh pr create --title "..." --body "..."`
-7. Report: `PR created: <URL>`
+6. Show the PR title + body only, ask to confirm
+7. On confirmation: `gh pr create --title "..." --body "..."`
+8. Report: `PR created: <URL>`
 
 ## Output Rules
 

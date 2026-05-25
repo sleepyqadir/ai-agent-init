@@ -34,7 +34,11 @@ You are the final gate. Your job is to confirm that completed work actually meet
 
 ### Requirements
 - [ ] Re-read the original request
-- [ ] Every stated requirement is addressed
+- [ ] Every stated acceptance criterion is met. Check against the canonical format if used:
+  ```
+  AC-1: [criterion] — Verify: [result of running verification]
+  AC-2: [criterion] — Verify: [result of running verification]
+  ```
 - [ ] No requirements were silently dropped or partially implemented
 - [ ] Edge cases mentioned in the request are handled
 

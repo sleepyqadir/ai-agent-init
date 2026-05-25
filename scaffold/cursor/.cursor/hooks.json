@@ -9,22 +9,29 @@
     "preToolUse": [
       {
         "command": "python3 .cursor/hooks/security-guard.py",
-        "matcher": "Write"
+        "matcher": "Write|Edit"
       }
     ],
     "beforeShellExecution": [
       {
         "command": "python3 .cursor/hooks/bash-guard.py",
-        "failClosed": false
+        "failClosed": true
       }
     ],
     "postToolUse": [
       {
         "command": "bash .cursor/hooks/dependency-audit.sh",
         "matcher": "Write"
+      },
+      {
+        "command": "bash .cursor/hooks/lint-check.sh",
+        "matcher": "Write|Edit"
       }
     ],
     "stop": [
+      {
+        "command": "python3 .cursor/hooks/pre-stop-verify.py"
+      },
       {
         "command": "python3 .cursor/hooks/session-close.py"
       }

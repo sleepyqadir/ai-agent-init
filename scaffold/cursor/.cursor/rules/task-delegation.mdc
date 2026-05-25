@@ -53,6 +53,7 @@ Instead of (or alongside) subagents, use these skills for guided multi-phase wor
 |---|---|
 | Multi-file feature development | `feature-dev` |
 | API endpoint design | `api-design` |
+| Generate curl commands for API endpoints | `api-curl` |
 | Test-driven development | `tdd` |
 | Database migration | `database-migrate` |
 | Building AI agents or LLM pipelines | `ai-agent-build` |

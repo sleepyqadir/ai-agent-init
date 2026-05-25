@@ -533,9 +533,9 @@ apply_gitignore() {
     info "Solo ($PLATFORM_LABEL) — $CONFIG_DIR/ and $CONTEXT_FILE will be gitignored."
   else
     if [ "$p" = "claude" ]; then
-      entries=".claude/session-notes.md .claude/settings.local.json .claude/worktrees/ CLAUDE.local.md .claude/.aiagent-init-version .claude/token-usage.jsonl"
+      entries=".claude/session-notes.md .claude/settings.local.json .claude/worktrees/ .claude/plans/ CLAUDE.local.md .claude/.aiagent-init-version .claude/token-usage.jsonl"
     else
-      entries=".cursor/session-notes.md .cursor/mcp.json .cursor/.aiagent-init-version .cursor/token-usage.jsonl"
+      entries=".cursor/session-notes.md .cursor/mcp.json .cursor/plans/ .cursor/.aiagent-init-version .cursor/token-usage.jsonl"
     fi
     info "Team ($PLATFORM_LABEL) — $CONFIG_DIR/ will be committed. Personal files stay gitignored."
   fi
