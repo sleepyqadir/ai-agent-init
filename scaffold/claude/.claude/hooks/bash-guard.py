@@ -118,12 +118,14 @@ def main():
     try:
         hook_input = json.load(sys.stdin)
     except Exception:
+        json.dump({"result": "allow"}, sys.stdout)
         sys.exit(0)
 
     tool_input = hook_input.get("tool_input", {})
     command = tool_input.get("command", "")
 
     if not command:
+        json.dump({"result": "allow"}, sys.stdout)
         sys.exit(0)
 
     matches = []
@@ -135,15 +137,11 @@ def main():
             matches.append(p)
 
     if not matches:
+        json.dump({"result": "allow"}, sys.stdout)
         sys.exit(0)
 
-    lines = ["Bash security block:"]
-    for m in matches:
-        lines.append(f"\n[{m['name']}]")
-        lines.append(m["message"])
-        lines.append(f"Command: {command[:200]}")
-
-    print("\n".join(lines), file=sys.stderr)
+    reasons = [f"[{m['name']}] {m['message']}" for m in matches]
+    json.dump({"result": "block", "reason": "\n".join(reasons)}, sys.stdout)
     sys.exit(2)
 
 
