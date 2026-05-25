@@ -44,10 +44,13 @@ Platform flags:
   --both      Install both Claude and Cursor scaffolds
 
 Options:
-  --update    Update an existing installation (overwrites skills/rules/hooks)
-  --dry-run   Preview what would change without modifying anything
-  --verify    Validate an existing installation
-  --help      Show this help
+  --update                Update an existing installation (overwrites skills/rules/hooks)
+  --dry-run               Preview what would change without modifying anything
+  --verify                Validate an existing installation
+  --setup-daily-update    Configure automated daily standup Slack DM
+  --daily-update          Send daily update now (requires setup)
+  --disable-daily-update  Disable the scheduled daily update
+  --help                  Show this help
 
 Examples:
   aiagent-init --cursor .
@@ -55,6 +58,9 @@ Examples:
   aiagent-init --update --cursor .
   aiagent-init --dry-run --cursor .
   aiagent-init --verify .
+  aiagent-init --setup-daily-update
+  aiagent-init --daily-update
+  aiagent-init --disable-daily-update
 EOF
 }
 
@@ -62,23 +68,29 @@ EOF
 PLATFORM=""
 UPDATE=false
 VERIFY=false
+SETUP_DAILY_UPDATE=false
+DAILY_UPDATE=false
+DISABLE_DAILY_UPDATE=false
 TARGET=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --claude)  PLATFORM="claude"; shift ;;
-    --cursor)  PLATFORM="cursor"; shift ;;
-    --both)    PLATFORM="both";   shift ;;
-    --update)  UPDATE=true;       shift ;;
-    --dry-run) DRY_RUN=true;      shift ;;
-    --verify)  VERIFY=true;       shift ;;
+    --claude)               PLATFORM="claude"; shift ;;
+    --cursor)               PLATFORM="cursor"; shift ;;
+    --both)                 PLATFORM="both";   shift ;;
+    --update)               UPDATE=true;       shift ;;
+    --dry-run)              DRY_RUN=true;      shift ;;
+    --verify)               VERIFY=true;       shift ;;
+    --setup-daily-update)   SETUP_DAILY_UPDATE=true; shift ;;
+    --daily-update)         DAILY_UPDATE=true;        shift ;;
+    --disable-daily-update) DISABLE_DAILY_UPDATE=true; shift ;;
     --help|-h) usage; exit 0 ;;
     -*)        err "Unknown flag: $1"; echo ""; usage; exit 1 ;;
     *)         TARGET="$1"; shift ;;
   esac
 done
 
-if [ -z "$PLATFORM" ] && ! $VERIFY; then
+if [ -z "$PLATFORM" ] && ! $VERIFY && ! $SETUP_DAILY_UPDATE && ! $DAILY_UPDATE && ! $DISABLE_DAILY_UPDATE; then
   err "platform flag required (--claude, --cursor, or --both)"
   echo ""
   usage
@@ -246,6 +258,298 @@ if $VERIFY; then
   else
     verify_platform "$PLATFORM"
   fi
+  exit 0
+fi
+
+# ── Daily Update commands ──────────────────────────────────────────────────────
+DAILY_UPDATE_CONFIG="$HOME/.aiagent-init/config.json"
+DAILY_UPDATE_SCRIPT="$SCRIPT_DIR/daily-update-send.py"
+DAILY_UPDATE_PLIST="$HOME/Library/LaunchAgents/com.aiagent-init.daily-update.plist"
+
+# read_secret <prompt>: read without echo, return via REPLY
+read_secret() {
+  local prompt="$1"
+  if [ -t 0 ]; then
+    printf "%s" "$prompt"
+    stty -echo 2>/dev/null || true
+    IFS= read -r REPLY
+    stty echo 2>/dev/null || true
+    printf "\n"
+  else
+    IFS= read -r REPLY
+  fi
+}
+
+if $SETUP_DAILY_UPDATE; then
+  header "Daily Update — Automated Slack DM Setup"
+  echo ""
+
+  # Load existing credentials so we can skip re-prompting them
+  EXISTING_SLACK_TOKEN=""
+  EXISTING_SLACK_USER_ID=""
+  EXISTING_LLM_PROVIDER=""
+  EXISTING_LLM_KEY=""
+  EXISTING_LLM_MODEL=""
+  if [ -f "$DAILY_UPDATE_CONFIG" ]; then
+    EXISTING_SLACK_TOKEN="$(python3 -c "import json; d=json.load(open('$DAILY_UPDATE_CONFIG')); print(d.get('daily_update',{}).get('slack_bot_token',''))" 2>/dev/null || echo "")"
+    EXISTING_SLACK_USER_ID="$(python3 -c "import json; d=json.load(open('$DAILY_UPDATE_CONFIG')); print(d.get('daily_update',{}).get('slack_user_id',''))" 2>/dev/null || echo "")"
+    EXISTING_LLM_PROVIDER="$(python3 -c "import json; d=json.load(open('$DAILY_UPDATE_CONFIG')); print(d.get('daily_update',{}).get('llm_provider',''))" 2>/dev/null || echo "")"
+    EXISTING_LLM_KEY="$(python3 -c "import json; d=json.load(open('$DAILY_UPDATE_CONFIG')); print(d.get('daily_update',{}).get('llm_api_key',''))" 2>/dev/null || echo "")"
+    EXISTING_LLM_MODEL="$(python3 -c "import json; d=json.load(open('$DAILY_UPDATE_CONFIG')); print(d.get('daily_update',{}).get('llm_model',''))" 2>/dev/null || echo "")"
+  fi
+
+  # Slack bot token
+  if [ -n "$EXISTING_SLACK_TOKEN" ]; then
+    MASKED="$(printf '%s' "$EXISTING_SLACK_TOKEN" | cut -c1-8)..."
+    info "1. Slack Bot Token: using existing ($MASKED) — press Enter to keep, or type a new one"
+    printf "   > "
+    IFS= read -r INPUT_TOKEN
+    SLACK_TOKEN="${INPUT_TOKEN:-$EXISTING_SLACK_TOKEN}"
+  else
+    read_secret "1. Slack Bot Token (xoxb-...): "
+    SLACK_TOKEN="$REPLY"
+  fi
+  if [ -z "$SLACK_TOKEN" ]; then
+    err "Slack bot token is required."
+    exit 1
+  fi
+  case "$SLACK_TOKEN" in
+    xoxb-*) ;;
+    *) warn "Token doesn't start with 'xoxb-' — double-check it's a bot token." ;;
+  esac
+
+  # Slack user ID
+  if [ -n "$EXISTING_SLACK_USER_ID" ]; then
+    info "2. Slack User ID: using existing ($EXISTING_SLACK_USER_ID) — press Enter to keep, or type a new one"
+    printf "   > "
+    IFS= read -r INPUT_UID
+    SLACK_USER_ID="${INPUT_UID:-$EXISTING_SLACK_USER_ID}"
+  else
+    echo ""
+    echo "2. Your Slack User ID (starts with U)"
+    echo "   Find it: open your Slack profile → click the three dots → 'Copy member ID'"
+    printf "   User ID: "
+    IFS= read -r SLACK_USER_ID
+  fi
+  if [ -z "$SLACK_USER_ID" ]; then
+    err "Slack user ID is required."
+    exit 1
+  fi
+  case "$SLACK_USER_ID" in
+    U*) ;;
+    *) warn "User ID doesn't start with 'U' — verify it from your Slack profile." ;;
+  esac
+
+  # LLM provider
+  if [ -n "$EXISTING_LLM_PROVIDER" ]; then
+    info "3. LLM Provider: using existing ($EXISTING_LLM_PROVIDER) — press Enter to keep, or type openai/anthropic"
+    printf "   > "
+    IFS= read -r INPUT_PROVIDER
+    LLM_PROVIDER="${INPUT_PROVIDER:-$EXISTING_LLM_PROVIDER}"
+  else
+    echo ""
+    printf "3. LLM Provider [openai/anthropic] (default: openai): "
+    IFS= read -r LLM_PROVIDER
+    LLM_PROVIDER="${LLM_PROVIDER:-openai}"
+  fi
+  LLM_PROVIDER="$(printf '%s' "$LLM_PROVIDER" | tr '[:upper:]' '[:lower:]')"
+  if [ "$LLM_PROVIDER" != "openai" ] && [ "$LLM_PROVIDER" != "anthropic" ]; then
+    err "Provider must be 'openai' or 'anthropic'."
+    exit 1
+  fi
+  if [ "$LLM_PROVIDER" = "openai" ]; then
+    DEFAULT_MODEL="gpt-4o-mini"
+  else
+    DEFAULT_MODEL="claude-3-haiku-20240307"
+  fi
+
+  # LLM API key
+  if [ -n "$EXISTING_LLM_KEY" ]; then
+    MASKED_KEY="$(printf '%s' "$EXISTING_LLM_KEY" | cut -c1-8)..."
+    info "4. LLM API Key: using existing ($MASKED_KEY) — press Enter to keep, or type a new one"
+    printf "   > "
+    stty -echo 2>/dev/null || true
+    IFS= read -r INPUT_KEY
+    stty echo 2>/dev/null || true
+    printf "\n"
+    LLM_API_KEY="${INPUT_KEY:-$EXISTING_LLM_KEY}"
+  else
+    echo ""
+    if [ "$LLM_PROVIDER" = "openai" ]; then
+      read_secret "4. OpenAI API Key (sk-...): "
+    else
+      read_secret "4. Anthropic API Key (sk-ant-...): "
+    fi
+    LLM_API_KEY="$REPLY"
+  fi
+  if [ -z "$LLM_API_KEY" ]; then
+    err "LLM API key is required."
+    exit 1
+  fi
+
+  # Use existing model or cost-effective default; never prompt (user shouldn't need to know)
+  LLM_MODEL="${EXISTING_LLM_MODEL:-$DEFAULT_MODEL}"
+
+  # Send time
+  echo ""
+  printf "5. Preferred send time — 24h format (default: 18:00): "
+  IFS= read -r SEND_TIME
+  SEND_TIME="${SEND_TIME:-18:00}"
+  SEND_HOUR="$(printf '%s' "$SEND_TIME" | cut -d: -f1)"
+  SEND_MINUTE="$(printf '%s' "$SEND_TIME" | cut -d: -f2)"
+  if [ -z "$SEND_HOUR" ] || [ -z "$SEND_MINUTE" ]; then
+    err "Invalid time format. Use HH:MM (e.g., 18:00)."
+    exit 1
+  fi
+
+  # Write config
+  mkdir -p "$(dirname "$DAILY_UPDATE_CONFIG")"
+  # Merge with existing config if present
+  EXISTING_PROJECTS="[]"
+  if [ -f "$DAILY_UPDATE_CONFIG" ]; then
+    EXISTING_PROJECTS="$(python3 -c "
+import json, sys
+try:
+    cfg = json.load(open('$DAILY_UPDATE_CONFIG'))
+    print(json.dumps(cfg.get('daily_update', {}).get('projects', [])))
+except Exception:
+    print('[]')
+" 2>/dev/null || echo "[]")"
+  fi
+
+  python3 - <<PYEOF
+import json, os, stat
+
+config_path = "$DAILY_UPDATE_CONFIG"
+existing_projects = $EXISTING_PROJECTS
+
+data = {}
+if os.path.exists(config_path):
+    try:
+        with open(config_path) as f:
+            data = json.load(f)
+    except Exception:
+        data = {}
+
+data["daily_update"] = {
+    "enabled": True,
+    "slack_bot_token": "$SLACK_TOKEN",
+    "slack_user_id": "$SLACK_USER_ID",
+    "llm_provider": "$LLM_PROVIDER",
+    "llm_api_key": "$LLM_API_KEY",
+    "llm_model": "$LLM_MODEL",
+    "send_time": "$SEND_TIME",
+    "projects": existing_projects,
+}
+
+with open(config_path, "w") as f:
+    json.dump(data, f, indent=2)
+os.chmod(config_path, stat.S_IRUSR | stat.S_IWUSR)
+print("Config saved.")
+PYEOF
+
+  echo ""
+  success "Config saved to $DAILY_UPDATE_CONFIG (permissions: 600)"
+
+  # Install launchd plist (macOS) or print crontab instructions (Linux)
+  if [ "$(uname)" = "Darwin" ]; then
+    mkdir -p "$(dirname "$DAILY_UPDATE_PLIST")"
+    cat > "$DAILY_UPDATE_PLIST" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.aiagent-init.daily-update</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>$(command -v python3)</string>
+        <string>$DAILY_UPDATE_SCRIPT</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>$SEND_HOUR</integer>
+        <key>Minute</key>
+        <integer>$SEND_MINUTE</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>$HOME/.aiagent-init/daily-update.log</string>
+    <key>StandardErrorPath</key>
+    <string>$HOME/.aiagent-init/daily-update.log</string>
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>
+PLIST
+    launchctl unload "$DAILY_UPDATE_PLIST" 2>/dev/null || true
+    launchctl load "$DAILY_UPDATE_PLIST" 2>/dev/null && \
+      success "Installed launchd plist — runs daily at $SEND_TIME" || \
+      warn "Could not load plist automatically. Run: launchctl load $DAILY_UPDATE_PLIST"
+  else
+    echo ""
+    info "Linux detected. Add this cron entry manually:"
+    echo ""
+    echo "  crontab -e"
+    echo ""
+    echo "  $SEND_MINUTE $SEND_HOUR * * * $(command -v python3) $DAILY_UPDATE_SCRIPT >> $HOME/.aiagent-init/daily-update.log 2>&1"
+    echo ""
+  fi
+
+  echo ""
+  echo "  Disable:  aiagent-init --disable-daily-update"
+  echo "  Test now: aiagent-init --daily-update"
+  echo ""
+  exit 0
+fi
+
+if $DAILY_UPDATE; then
+  if [ ! -f "$DAILY_UPDATE_SCRIPT" ]; then
+    err "daily-update-send.py not found at $DAILY_UPDATE_SCRIPT"
+    err "Is the aiagent-init repo intact?"
+    exit 1
+  fi
+  python3 "$DAILY_UPDATE_SCRIPT" "$@"
+  exit $?
+fi
+
+if $DISABLE_DAILY_UPDATE; then
+  if [ ! -f "$DAILY_UPDATE_CONFIG" ]; then
+    warn "No config found at $DAILY_UPDATE_CONFIG — nothing to disable."
+    exit 0
+  fi
+
+  # Unload launchd plist on macOS
+  if [ "$(uname)" = "Darwin" ] && [ -f "$DAILY_UPDATE_PLIST" ]; then
+    launchctl unload "$DAILY_UPDATE_PLIST" 2>/dev/null || true
+    success "Unloaded launchd plist"
+  fi
+
+  # Set enabled=false in config
+  python3 - <<PYEOF
+import json, os, stat
+
+config_path = "$DAILY_UPDATE_CONFIG"
+try:
+    with open(config_path) as f:
+        data = json.load(f)
+except Exception:
+    data = {}
+
+if "daily_update" not in data:
+    data["daily_update"] = {}
+
+data["daily_update"]["enabled"] = False
+
+with open(config_path, "w") as f:
+    json.dump(data, f, indent=2)
+os.chmod(config_path, stat.S_IRUSR | stat.S_IWUSR)
+print("Marked as disabled.")
+PYEOF
+
+  success "Daily update disabled."
+  echo "  Re-enable: aiagent-init --setup-daily-update"
+  echo ""
   exit 0
 fi
 
@@ -526,16 +830,16 @@ apply_gitignore() {
   local entries=""
   if [ "$mode" = "s" ]; then
     if [ "$p" = "claude" ]; then
-      entries=".claude/ CLAUDE.md CLAUDE.local.md .mcp.json.example .claude/.aiagent-init-version .claude/token-usage.jsonl"
+      entries=".claude/ CLAUDE.md CLAUDE.local.md .mcp.json.example .claude/.aiagent-init-version .claude/token-usage.jsonl .claude/daily-updates.jsonl"
     else
-      entries=".cursor/skills/ .cursor/rules/ .cursor/hooks/ .cursor/hooks.json AGENTS.md .cursor/session-notes.md .cursor/mcp.json.example .cursor/.aiagent-init-version .cursor/token-usage.jsonl"
+      entries=".cursor/skills/ .cursor/rules/ .cursor/hooks/ .cursor/hooks.json AGENTS.md .cursor/session-notes.md .cursor/mcp.json.example .cursor/.aiagent-init-version .cursor/token-usage.jsonl .cursor/daily-updates.jsonl"
     fi
     info "Solo ($PLATFORM_LABEL) — $CONFIG_DIR/ and $CONTEXT_FILE will be gitignored."
   else
     if [ "$p" = "claude" ]; then
-      entries=".claude/session-notes.md .claude/settings.local.json .claude/worktrees/ .claude/plans/ CLAUDE.local.md .claude/.aiagent-init-version .claude/token-usage.jsonl"
+      entries=".claude/session-notes.md .claude/settings.local.json .claude/worktrees/ .claude/plans/ CLAUDE.local.md .claude/.aiagent-init-version .claude/token-usage.jsonl .claude/daily-updates.jsonl"
     else
-      entries=".cursor/session-notes.md .cursor/mcp.json .cursor/plans/ .cursor/.aiagent-init-version .cursor/token-usage.jsonl"
+      entries=".cursor/session-notes.md .cursor/mcp.json .cursor/plans/ .cursor/.aiagent-init-version .cursor/token-usage.jsonl .cursor/daily-updates.jsonl"
     fi
     info "Team ($PLATFORM_LABEL) — $CONFIG_DIR/ will be committed. Personal files stay gitignored."
   fi
@@ -561,6 +865,29 @@ if [ "$PLATFORM" = "both" ]; then
   apply_gitignore "cursor" "$team_choice_lower"
 else
   apply_gitignore "$PLATFORM" "$team_choice_lower"
+fi
+
+# ── Register project with daily-update config (if configured) ─────────────────
+if [ -f "$DAILY_UPDATE_CONFIG" ] && ! $DRY_RUN; then
+  python3 - <<PYEOF 2>/dev/null || true
+import json, os, stat
+
+config_path = "$DAILY_UPDATE_CONFIG"
+project_dir = "$TARGET"
+try:
+    with open(config_path) as f:
+        data = json.load(f)
+    if "daily_update" in data:
+        projects = data["daily_update"].get("projects", [])
+        if project_dir not in projects:
+            projects.append(project_dir)
+            data["daily_update"]["projects"] = projects
+            with open(config_path, "w") as f:
+                json.dump(data, f, indent=2)
+            os.chmod(config_path, stat.S_IRUSR | stat.S_IWUSR)
+except Exception:
+    pass
+PYEOF
 fi
 
 # ── Final output ──────────────────────────────────────────────────────────────

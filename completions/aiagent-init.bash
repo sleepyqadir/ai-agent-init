@@ -19,7 +19,7 @@ _aiagent_init_complete() {
     prev="${COMP_WORDS[COMP_CWORD-1]}"
   }
 
-  local all_flags="--claude --cursor --both --update --dry-run --verify --help"
+  local all_flags="--claude --cursor --both --update --dry-run --verify --setup-daily-update --daily-update --disable-daily-update --help"
 
   # Determine which platform flags have already been used
   local platform_used=false

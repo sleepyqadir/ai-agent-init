@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
 Session Close Hook (stop event)
-Checks for loose ends, writes a structured session summary, and detects
-context drift that may require AGENTS.md updates.
+Checks for loose ends, writes a structured session summary, detects
+context drift that may require AGENTS.md updates, and appends a
+structured entry to daily-updates.jsonl for automated standup generation.
 Does not block (always exits 0) — prompts and logs only.
 """
 
@@ -217,7 +218,55 @@ Token usage (last): {token_str}
     with open(notes_path, "w") as f:
         f.write(summary + existing)
 
+    # Append structured entry to daily-updates.jsonl for automated standup
+    append_daily_update_entry(project_dir, config_dir, recent_commits, changed_files_raw)
+
     sys.exit(0)
+
+
+def append_daily_update_entry(project_dir, config_dir, recent_commits_raw, changed_files_raw):
+    """Append a structured accomplishment entry to daily-updates.jsonl."""
+    try:
+        jsonl_path = os.path.join(project_dir, config_dir, "daily-updates.jsonl")
+
+        # Extract commit hashes and messages from recent commits since last entry
+        commits = []
+        commit_summary_parts = []
+        if recent_commits_raw and recent_commits_raw != "No commits":
+            for line in recent_commits_raw.splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                parts = line.split(" ", 1)
+                if len(parts) == 2:
+                    commits.append(parts[0])
+                    commit_summary_parts.append(parts[1])
+
+        # Count changed files
+        files_changed = 0
+        if changed_files_raw:
+            files_changed = len([f for f in changed_files_raw.splitlines() if f.strip()])
+
+        # Skip if nothing happened this session
+        if not commits and files_changed == 0:
+            return
+
+        # Build a plain-text summary from commit messages (LLM will polish at send time)
+        summary = "; ".join(commit_summary_parts) if commit_summary_parts else f"{files_changed} file(s) modified"
+
+        entry = {
+            "ts": datetime.now().isoformat(timespec="seconds"),
+            "project": project_dir,
+            "summary": summary,
+            "commits": commits,
+            "files_changed": files_changed,
+        }
+
+        os.makedirs(os.path.dirname(jsonl_path), exist_ok=True)
+        with open(jsonl_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry) + "\n")
+    except Exception:
+        pass  # Never block session close due to daily-update logging
 
 
 if __name__ == "__main__":

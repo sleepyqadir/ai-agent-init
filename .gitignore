@@ -9,3 +9,4 @@ AGENTS.md
 .cursor/token-usage.jsonl
 __pycache__/
 *.pyc
+.cursor/daily-updates.jsonl

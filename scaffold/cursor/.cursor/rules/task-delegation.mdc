@@ -63,6 +63,7 @@ Instead of (or alongside) subagents, use these skills for guided multi-phase wor
 | Exploratory E2E testing loop | `e2e-loop` |
 | Iterative frontend polish | `10-10-frontend` |
 | GitHub Actions CI/CD setup | `ci-setup` |
+| Daily standup summary | `daily-update` |
 
 If two subagents produce conflicting recommendations, present both perspectives to the user — do not silently pick one.
 
